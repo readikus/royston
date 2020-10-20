@@ -154,7 +154,6 @@ class Royston:
         """
         used = set()
         for ngram in self.ngram_history:
-            print(self.ngram_history[ngram])
             for occurance in self.ngram_history[ngram]['occurances']:
                 if occurance['date'] >= start and occurance['date'] < end:
                     used.add(ngram)
