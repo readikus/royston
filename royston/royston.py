@@ -114,7 +114,6 @@ class Royston:
         """
         # preprocess the date to check it's in the right format.
         if not 'date' in raw_doc:
-            print('raising error for no date')
             raise Exception('No \'date\' field set for document')
         date = self.clean_date(raw_doc['date'])
 
@@ -158,3 +157,34 @@ class Royston:
                 if occurance['date'] >= start and occurance['date'] < end:
                     used.add(ngram)
         return list(used)
+
+    def find_docs(self, ngram, options):
+        """
+        Find the documents that contain the specified ngram
+        """
+        if (not ngram in self.ngram_history):
+            return []
+        history = self.ngram_history[ngram]
+
+        def matcher(doc):
+            full_doc = self.docs[doc['doc_id']]
+            return (doc['date'] >= options['start'] and doc['date'] < options['end'] and
+                ((not 'subject' in options) or
+                    ('subject' in full_doc and options['subject'] == full_doc['subject'])))
+
+        history_in_range = list(filter(lambda doc: matcher(doc), history['occurances']))
+        # return just the ids
+        return list(map(lambda history: history['doc_id'], history_in_range))
+
+    def count(self, ngram, options):
+        """
+        Count the number of times that an ngrams has occurred within the
+        conditions of the options.
+   
+        :param ngram:
+        :param options:
+        :return int:
+        """
+        matching_docs = self.find_docs(ngram, options)
+        return len(matching_docs)
+

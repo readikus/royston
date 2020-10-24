@@ -18,3 +18,8 @@ coverage report -m  royston/royston.py
 ## Contribute?
 
 This is still in the early stages of being ported over from JavaScript, and any help would be appreciated. The issues contain a lot of features that are needed. Please get in touch via [LinkedIn](https://www.linkedin.com/in/ianreadnorwich/) and I can talk you thought anything.
+
+Main concerns are:
+
+* 100% test coverage.
+* Retain the document format
