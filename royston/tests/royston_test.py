@@ -136,7 +136,5 @@ class TestRoyston(unittest.TestCase):
         # count: test the count returns the correct number
         self.assertEqual(r.find_docs(('random',), find_doc_options_with_subject), [])
 
-
-
 if __name__ == '__main__':
     unittest.main()
