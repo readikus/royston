@@ -27,6 +27,8 @@ find_doc_options = {
   'end': dt.now()
 }
 
+find_doc_options_with_subject = {**find_doc_options, 'subject': 'Polar  Bears'}
+
 past_history_options = {
   'start': now - dateutil.relativedelta.relativedelta(years = 2), #moment().subtract(2, 'year'),
   'end': now - dateutil.relativedelta.relativedelta(years = 1) #moment().subtract(1, 'year')
@@ -103,6 +105,38 @@ class TestRoyston(unittest.TestCase):
         # check the date filter is working to ignore stuff out of range
         r.used_phrases(find_doc_options['start'], find_doc_options['end'])
         self.assertEqual([], r.used_phrases(past_history_options['start'], past_history_options['end']))
+
+
+    def test_count(self):
+
+        r = Royston({})
+        r.ingest_all([test_doc, test_doc_2])
+
+        # count: test the count returns the correct number
+        self.assertEqual(r.count(('random',), find_doc_options), 2)
+        self.assertEqual(r.count(('random','string'), find_doc_options), 1)
+        self.assertEqual(r.count(('not','random','string'), find_doc_options), 0)
+
+        #count: not in date range
+        self.assertEqual(r.count(('random'), past_history_options), 0)
+
+    def test_find_docs(self):
+
+        r = Royston({})
+        r.ingest_all([test_doc, test_doc_2])
+
+        # count: test the count returns the correct number
+        self.assertEqual(r.find_docs(('random',), find_doc_options), ['123', '456'])
+
+    def test_find_docs_with_subject(self):
+
+        r = Royston({})
+        r.ingest_all([test_doc, test_doc_2])
+
+        # count: test the count returns the correct number
+        self.assertEqual(r.find_docs(('random',), find_doc_options_with_subject), [])
+
+
 
 if __name__ == '__main__':
     unittest.main()
