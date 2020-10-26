@@ -51,17 +51,17 @@ class TestRoyston(unittest.TestCase):
         # check that s.split fails when the separator is not a string
     
     def test_constructor(self):
-        r = Royston({ 'minTrendFreq': 5 })
-        self.assertEqual(r.options['minTrendFreq'], 5)
-        self.assertEqual(r.options['historyDays'], 90)
+        r = Royston({ 'min_trend_freq': 5 })
+        self.assertEqual(r.options['min_trend_freq'], 5)
+        self.assertEqual(r.options['history_days'], 90)
 
     def test_ingest_no_date(self):
-        r = Royston({ 'minTrendFreq': 5 })
+        r = Royston({ 'min_trend_freq': 5 })
         with self.assertRaises(Exception) as context:
             r.ingest(no_date_test_doc)
 
     def test_ingest_no_id(self):
-        r = Royston({ 'minTrendFreq': 5 })
+        r = Royston({ 'min_trend_freq': 5 })
         with self.assertRaises(Exception) as context:
             r.ingest(no_id_test_doc)
 
@@ -70,7 +70,7 @@ class TestRoyston(unittest.TestCase):
         self.assertEqual(r.clean_date('2020-01-23 01:02:03'), dt(2020, 1, 23, 1, 2, 3))
 
     def test_ingest_the_same_doc_twice(self):
-        r = Royston({ 'minTrendFreq': 5 })
+        r = Royston({ 'min_trend_freq': 5 })
         self.assertEqual(r.docs, {}) #maybe wrong syntax, as needs to be based on keys??
 
         r.ingest(test_doc)
@@ -83,7 +83,7 @@ class TestRoyston(unittest.TestCase):
         """
         Test ingest_all ingests multiple documents
         """
-        r = Royston({ 'minTrendFreq': 5 })
+        r = Royston({ 'min_trend_freq': 5 })
         self.assertEqual(r.docs, {})
         r.ingest_all([test_doc, test_doc_2])
         self.assertEqual(r.docs, { test_doc['id']: test_doc, test_doc_2['id']: test_doc_2 })
@@ -92,7 +92,7 @@ class TestRoyston(unittest.TestCase):
         """
         Test used_phrases returns the correct phrases
         """
-        r = Royston({ 'minTrendFreq': 5 })
+        r = Royston({ 'min_trend_freq': 5 })
         r.ingest_all([test_doc, test_doc_2])
         computed_phrases = r.used_phrases(find_doc_options['start'], find_doc_options['end'])
         # not perfect just looking at first element, but...

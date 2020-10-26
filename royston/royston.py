@@ -7,6 +7,7 @@ import datetime
 import dateparser
 from datetime import datetime as dt
 import dateutil.relativedelta
+from functools import reduce
 
 nltk.download('wordnet')
 nltk.download('punkt')
@@ -19,22 +20,100 @@ DEFAULT_OPTIONS = {
     # a threshold for the minimum number of times a phrase has to occur
     # in a single day before it can even be considered a trend for a given subject.
     # @todo: work out a logical way of calculating this per category.
-    'minTrendFreq': 3,
+    'min_trend_freq': 3,
     # the context of the number of days to consider for the history
-    'historyDays': 90,
+    'history_days': 90,
     # the number of days over which to check for trends
-    'trendDays': 1,
+    'trend_days': 1,
     # the maximum size of the n-gram window
-    'maxN': 6,
+    'max_n': 6,
     # remove stop words - why wouldn't you?!
-    'keepStops': False,
+    'keep_stops': False,
     # really not sure why I added this...assume it is to handle words that just didn't get mentioned in the history period.
-    'historyFrequencyTolerance': 1.6,
+    'history_frequency_tolerance': 1.6,
     # @todo: This is no longer used...(but I really think it should be)
-    'similarityThreshold': 0.4,
+    'similarity_threshold': 0.4,
     # the maximum number of results to return.
-    'trendsTopN': 8
+    'trends_top_n': 8
 }
+
+DAY_IN_MS = 86400000
+
+def set_doc_phrases(doc_phrases, docs, phrases):
+    """
+    helper function for populating doc_phrases, such that doc_phrases[doc] = an array of
+    phrases that are trending
+    """
+    for doc in docs:
+        if not doc in doc_phrases:
+            doc_phrases[doc] = []
+        doc_phrases[doc] = doc_phrases[doc] + phrases
+"""
+def expand_trend_data (trends, docs) {
+        return trends.map(trend => {
+        # load all the related docs
+        const fullDocs = docs.filter(doc => trend.docs.includes(doc.id)).sort((event1, event2) => event1.date - event2.date)
+        return { ...trend, fullDocs };
+        });
+    }
+"""
+
+
+# put all of these helpers in a separate file....
+
+"""
+   * Returns true if one phrase is a sub phrase of the other.
+   *
+   * @params a (Array) an array of words
+   * @params b (Array) another array of words
+   * @return boolean - whether a or b is a sub-phrase of the other.
+   */"""
+def is_sub_phrase(phrase_a, phrase_b):
+
+    # if either are empty, return false
+    if len(phrase_a).length == 0 or lens(phraseB) == 0:
+        return false
+
+    # swap phrases if a is less than b
+    [a, b] = [phrase_b, phrase_a] if len(phrase_b) > len(phrase_a) else [phrase_a, phrase_b]
+
+    # Given that b is either the same or shorter than a, b will be a sub set
+    # a, so start matching  similar shorter  find where the first match.
+    start = a.index(b[0])
+
+    # it was found, and check there is space
+    # Rewrite just subtract a from start .. (start + )
+    if ((start >= 0) and ((start + len(b)) <= len(a))):
+        # check the rest matches
+        for j in range(1, len(b)):
+            if (b[j] != a[start + j]):
+               return false
+
+        return true
+
+    return false
+
+def remove_sub_phrases(trend_phrases):
+
+    """
+    for i in range(len(trend_phrases):
+      # (let j = i + 1; j < trend_phrases.length; j++) {
+      for j in range(i + 1, len(trend_phrases)): 
+        if (util.isSubPhrase(trend_phrases[i].phrase, trend_phrases[j].phrase)) {
+          # keep the biggest one
+          const spliceI = trend_phrases[i].length > trend_phrases[j].length ? j : i
+          # remove the element from the array
+          trend_phrases.splice(spliceI, 1)
+          # start processing again from the element that was cut out
+          i = spliceI
+          j = spliceI
+        }
+      }
+    }
+    """
+    return trend_phrases
+
+
 
 class Royston:
 
@@ -42,7 +121,7 @@ class Royston:
         self.set_options(options)
         self.docs = {}
         # initialise the multi-dimensional ngram array storage
-        self.ngrams = [ [] for _ in range(self.options['maxN'] + 1) ]
+        self.ngrams = [ [] for _ in range(self.options['max_n'] + 1) ]
         # track the usage of the ngrams
         self.ngram_history = {}
 
@@ -53,13 +132,13 @@ class Royston:
         # only set defaults if no start date is set.
         if not 'start' in self.options:
             self.options['end'] = dt.now()
-            self.options['start'] = dt.now() - dateutil.relativedelta.relativedelta(days = self.options['trendDays']) #moment().subtract(1, 'year')
+            self.options['start'] = dt.now() - dateutil.relativedelta.relativedelta(days = self.options['trend_days']) #moment().subtract(1, 'year')
   
         # get the history window dates
         if not 'history_start' in self.options:
             self.options['history_end'] = self.options['start']
             self.options['history_start'] = self.options['history_end'] \
-                - dateutil.relativedelta.relativedelta(days = self.options['historyDays'])
+                - dateutil.relativedelta.relativedelta(days = self.options['history_days'])
 
     def normalise(self, s):
         """
@@ -130,7 +209,7 @@ class Royston:
         self.docs[doc['id']] = doc
 
         # generate all the [1...n]-grams for the document
-        for n in range(1, self.options['maxN'] + 1):
+        for n in range(1, self.options['max_n'] + 1):
             doc_ngrams = ngrams(self.normalise(doc['body']), n)
             for ngram in doc_ngrams:
                 self.ingest_ngram(ngram, doc, n)
@@ -188,3 +267,155 @@ class Royston:
         matching_docs = self.find_docs(ngram, options)
         return len(matching_docs)
 
+
+    #  change start and end time to be part of options early on...
+    def get_ngram_trend (ngram, doc_phrases, trend_range_days):
+        """
+
+        this needs a proper name and explaination
+
+        """
+
+        # score if the phrase has trended in the last 24 hours
+
+        # const trendDocs = this.findDocs(ngram, { start: this.options.start, end: this.options.end })
+        trend_docs = self.find_docs(ngram, this.options)
+        trend_range_count = len(trend_docs)
+        ###history_options = { }
+        history_range_count = self.count(ngram, { 'start': self.options['history_start'], 'end': self.options['history_end'] })
+        history_day_average = self.options['history_frequency_tolerance'] * history_range_count / self.options['history_days']
+        trend_day_average = trend_range_count / trend_range_days
+        history_trend_range_ratio = (trend_day_average / (0.000001 if history_range_count == 0 else history_day_average))
+
+        # add in the tolerance
+
+        # if it's above the average
+        if ((trend_range_count > this.options['min_trend_freq']) and (trend_range_count > history_day_average)):
+            phrase = {
+                'phrase': ngram,
+                'score': history_trend_range_ratio * len(ngram),
+                'history_range_count': history_range_count,
+                'trend_range_count': trend_range_count,
+                'history_day_average': history_day_average,
+                'history_trend_range_ratio': history_trend_range_ratio,
+                'docs': trend_docs
+            }
+            set_doc_phrases(doc_phrases, trend_docs, [ngram])
+            return phrase
+        
+        return None
+  
+    """
+    Validate the trending options, setting defaults where necessary.
+    @todo: this whole block is manky and needs a refactor - setup, search and cluster
+    """
+    def trending(self, options = {}):
+        """
+        This is the really manky bit of code, that needs separating into a helper
+        class just for the trending
+        """
+
+        # maybe make it take customer commands for timings - but in reality, it's going to be real time..
+        # 
+        """
+        # setup
+        /*
+        # only set defaults if no start date is set.
+        if (!options.start) {
+        options.start = new Date()
+        options.end = new Date()
+        options.start.setDate(options.end.getDate() - 1)
+        }
+        # get the history window dates
+        if (!options.historyStart) {
+        options.historyEnd = new Date(options.start)
+        options.historyStart = moment(options.historyEnd).subtract(
+            this.options.historyDays, 'day').toDate()
+        } */
+        """
+
+        # end of setup
+
+        # start of trending:search
+        combined_options = {**self.options, **options}
+        start = combined_options['start']
+        end = combined_options['end']
+
+        # find all the common phrases used in respective subject, over the past day
+        used_phrases = self.used_phrases(start, end )
+        # duplicated data used later for sorting
+        doc_phrases = {}
+        trend_range_days = (end - start) / DAY_IN_MS
+
+        # score each phrase from the trend period compared to it's historic use
+        # this is a reduce
+        def reduce_phrases(phrase, l):
+            trend = self.get_ngram_trend(phrase, doc_phrases, trend_range_days)
+            if trend != None:
+                l.append(trend)
+
+        trend_phrases = reduce((lambda phrase, l: reduce_phrase(phrase, l), used_phrases))
+        #.reduce((acc, phrase) => {
+         #   const trend = self.getNGramTrend(phrase, docPhrases, trendRangeDays);
+          #  if (trend) {
+           #     acc.push(trend)
+            #}
+            #return acc
+            #}, [])
+
+        if len(trend_phrases) == 0:
+            return []
+
+        # remove sub phrases (i.e. "Tour de", compared to "Tour de France")
+        trend_phrases = remove_sub_phrases(trend_phrases)
+
+        # rank results - @todo: needs making nicer
+        #todo: trend_phrases.sort((a, b) => ((b.score === a.score) ? b.phrase.length - a.phrase.length : b.score - a.score)
+        
+        return trends
+
+        # end of trending:search
+
+        # start of trending:cluster
+
+        # this bit works to here!!!
+"""
+        # run the clustering - find the phrase that is most similar to so many
+        # others (i.e. i, where sum(i) = max( sum() )
+        const sc = new SimpleCluster(trend_phrases)
+        const trends = sc.cluster()
+
+        # rank the documents in each cluster, based on the docs etc.
+        for (let i = 0; i < trends.length; i++) {
+        const trend = trends[i]
+        const docs = []
+
+        # for each document in that trend, count the number of phrases that match
+        for (let j = 0; j < trend.docs.length; j++) {
+            const doc = trend.docs[j]
+
+            /*
+            let a = new Set([1,2,3]);
+            let b = new Set([4,3,2]);
+            let intersection = new Set(
+                [...a].filter(x => b.has(x)));
+            */
+            # count the number of phrases from the cluster that are in that doc
+            const matches = _.intersection(docPhrases[doc], trend.phrases).length
+            docs.push({ doc, matches })
+        }
+
+        # sort based on the number of matches
+        docs.sort((a, b) => b.matches - a.matches)
+        # remove unnecessary sort data now it is sorted
+        trend.docs = docs.map(doc => doc.doc)
+        }
+
+        # end of trending:cluster
+
+        # trim to just options.trendsTopN
+        if (trend_phrases.length > this.options.trendsTopN) {
+        trend_phrases.splice(this.options.trendsTopN, trend_phrases.length - this.options.trendsTopN)
+        }
+        return trends
+"""
