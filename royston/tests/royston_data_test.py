@@ -9,11 +9,10 @@ import json
 
 # load the test data
 snapshot_test_time_options = {
-  start: datetime.datetime(2019, 4, 22, 23, 48, 5),
-  end: datetime.datetime(2019, 4, 23, 23, 48, 5)
+  'start': dt(2019, 4, 22, 23, 48, 5),
+  'end': dt(2019, 4, 23, 23, 48, 5)
 }
-
-
+print('blah')
 test_doc = { 'id': '123', 'body': 'Random text string', 'date': dt.now() }
 test_doc_2 = { 'id': '456', 'body': 'Antoher random string', 'date': dt.now() }
 no_id_test_doc = { 'body': 'Another random string', 'date': dt.now() }
@@ -150,4 +149,8 @@ test('trending: no data', () => {
         self.assertEqual(r.find_docs(('random',), find_doc_options_with_subject), [])
 """
 if __name__ == '__main__':
+    print('name is main')
     unittest.main()
+else:
+    print('name is')
+    print(__name__)

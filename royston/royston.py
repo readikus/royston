@@ -8,6 +8,7 @@ import dateparser
 from datetime import datetime as dt
 import dateutil.relativedelta
 from functools import reduce
+import string
 
 nltk.download('wordnet')
 nltk.download('punkt')
@@ -20,7 +21,7 @@ DEFAULT_OPTIONS = {
     # a threshold for the minimum number of times a phrase has to occur
     # in a single day before it can even be considered a trend for a given subject.
     # @todo: work out a logical way of calculating this per category.
-    'min_trend_freq': 3,
+    'min_trend_freq': 4,
     # the context of the number of days to consider for the history
     'history_days': 90,
     # the number of days over which to check for trends
@@ -87,11 +88,11 @@ def is_sub_phrase(phrase_a, phrase_b):
         # check the rest matches
         for j in range(1, len(b)):
             if (b[j] != a[start + j]):
-               return false
+               return False
 
-        return true
+        return True
 
-    return false
+    return False
 
 def remove_sub_phrases(trend_phrases):
 
@@ -146,14 +147,17 @@ class Royston:
         it into a format that we can ingest optimally.
         @todo: create a function to map the original text
         with the normalised version. Or try maintaining capitalisation etc.
-        """
+        """ 
         words = word_tokenize(s)
-        filtered_sentence = [w for w in words if not w.lower() in stop_words] 
+        filtered_sentence = [w for w in words if not w.lower() in stop_words]
+
+        table = str.maketrans('', '', string.punctuation)
+        filtered_sentence = [w.translate(table) for w in filtered_sentence]
+        filtered_sentence = list(filter(lambda w: len(w) > 0, filtered_sentence))
 
         tokens = []
         for word in filtered_sentence:
             tokens.append(lemmatizer.lemmatize(word).lower())
-
         return tokens
 
     def clean_date(self, d):
@@ -167,11 +171,11 @@ class Royston:
         Add a new ngram into the ramekin.
         """
         # construct the storable ngram object
-        self.ngrams[n].append({
-            'date': doc['date'], # store this so it can be pruned when old
-            'ngram': ngram,
-            'subject': doc['subject'] if 'subject' in doc else None
-        })
+        #self.ngrams[n].append({
+        #    'date': doc['date'], # store this so it can be pruned when old
+        #    'ngram': ngram,
+        #    'subject': doc['subject'] if 'subject' in doc else None
+        #})
         # initialised hash element
         if not ngram in self.ngram_history:
             self.ngram_history[ngram] = { 'occurances': [] }
@@ -181,7 +185,7 @@ class Royston:
 
     def ingest(self, raw_doc):
         """
-        Ingest a single document into the ramekin.
+        Ingest a single document into the collection.
    
         :param raw_doc: document to ingest, in this format:
         {
@@ -195,6 +199,9 @@ class Royston:
         if not 'date' in raw_doc:
             raise Exception('No \'date\' field set for document')
         date = self.clean_date(raw_doc['date'])
+
+        if date < self.options['history_start']:
+            return
 
         # ensure there is an id set
         if not 'id' in raw_doc:
@@ -216,10 +223,11 @@ class Royston:
 
     def ingest_all(self, docs):
         """
-        ingests a set of documents into the current Ramekin.
+        ingests a set of documents into the current Royston.
         :param {docs}: a set of documents in the format expected format
         """
-        [self.ingest(doc) for doc in docs]
+        for doc in docs:
+            self.ingest(doc)
 
     def used_phrases(self, start, end):
         """
@@ -269,8 +277,10 @@ class Royston:
 
 
     #  change start and end time to be part of options early on...
-    def get_ngram_trend (ngram, doc_phrases, trend_range_days):
+    def get_ngram_trend (self, ngram, doc_phrases, trend_range_days):
         """
+
+        Does the trend analysis related to an ngram.
 
         this needs a proper name and explaination
 
@@ -278,19 +288,20 @@ class Royston:
 
         # score if the phrase has trended in the last 24 hours
 
-        # const trendDocs = this.findDocs(ngram, { start: this.options.start, end: this.options.end })
-        trend_docs = self.find_docs(ngram, this.options)
+        # const trendDocs = self.findDocs(ngram, { start: self.options.start, end: self.options.end })
+        trend_docs = self.find_docs(ngram, self.options)
         trend_range_count = len(trend_docs)
         ###history_options = { }
         history_range_count = self.count(ngram, { 'start': self.options['history_start'], 'end': self.options['history_end'] })
         history_day_average = self.options['history_frequency_tolerance'] * history_range_count / self.options['history_days']
+
         trend_day_average = trend_range_count / trend_range_days
         history_trend_range_ratio = (trend_day_average / (0.000001 if history_range_count == 0 else history_day_average))
 
         # add in the tolerance
 
         # if it's above the average
-        if ((trend_range_count > this.options['min_trend_freq']) and (trend_range_count > history_day_average)):
+        if ((trend_range_count > self.options['min_trend_freq']) and (trend_range_count > history_day_average)):
             phrase = {
                 'phrase': ngram,
                 'score': history_trend_range_ratio * len(ngram),
@@ -330,7 +341,7 @@ class Royston:
         if (!options.historyStart) {
         options.historyEnd = new Date(options.start)
         options.historyStart = moment(options.historyEnd).subtract(
-            this.options.historyDays, 'day').toDate()
+            self.options.historyDays, 'day').toDate()
         } */
         """
 
@@ -342,28 +353,23 @@ class Royston:
         end = combined_options['end']
 
         # find all the common phrases used in respective subject, over the past day
-        used_phrases = self.used_phrases(start, end )
+        used_phrases = self.used_phrases(start, end)
+
         # duplicated data used later for sorting
         doc_phrases = {}
-        trend_range_days = (end - start) / DAY_IN_MS
+        trend_range_days = (end - start).days
 
         # score each phrase from the trend period compared to it's historic use
         # this is a reduce
-        def reduce_phrases(phrase, l):
-            trend = self.get_ngram_trend(phrase, doc_phrases, trend_range_days)
-            if trend != None:
-                l.append(trend)
+        def filter_phrases(phrase):
+            return None != self.get_ngram_trend(phrase, doc_phrases, trend_range_days)
 
-        trend_phrases = reduce((lambda phrase, l: reduce_phrase(phrase, l), used_phrases))
-        #.reduce((acc, phrase) => {
-         #   const trend = self.getNGramTrend(phrase, docPhrases, trendRangeDays);
-          #  if (trend) {
-           #     acc.push(trend)
-            #}
-            #return acc
-            #}, [])
+        trend_phrases = list(filter(lambda phrase: filter_phrases(phrase), used_phrases))
 
-        if len(trend_phrases) == 0:
+        print('trend_phrases')
+        print(trend_phrases)
+
+        if trend_phrases == None:
             return []
 
         # remove sub phrases (i.e. "Tour de", compared to "Tour de France")
@@ -372,7 +378,7 @@ class Royston:
         # rank results - @todo: needs making nicer
         #todo: trend_phrases.sort((a, b) => ((b.score === a.score) ? b.phrase.length - a.phrase.length : b.score - a.score)
         
-        return trends
+        return trend_phrases
 
         # end of trending:search
 
@@ -414,8 +420,8 @@ class Royston:
         # end of trending:cluster
 
         # trim to just options.trendsTopN
-        if (trend_phrases.length > this.options.trendsTopN) {
-        trend_phrases.splice(this.options.trendsTopN, trend_phrases.length - this.options.trendsTopN)
+        if (trend_phrases.length > self.options.trendsTopN) {
+        trend_phrases.splice(self.options.trendsTopN, trend_phrases.length - self.options.trendsTopN)
         }
         return trends
 """

@@ -2,6 +2,19 @@ import unittest
 from datetime import datetime as dt
 import dateutil.relativedelta
 from royston.royston import Royston
+import json
+import os
+import pytz
+# load json file:
+
+# load the test data
+
+
+# hardcode to calculate stories relative to this time period
+snapshot_test_time_options = {
+  'start': dt(2019, 1, 20, 0, 0, 1, tzinfo=pytz.UTC),
+  'end': dt(2019, 1, 21, 23, 59, 5, tzinfo=pytz.UTC)
+}
 
 test_doc = { 'id': '123', 'body': 'Random text string', 'date': dt.now() }
 test_doc_2 = { 'id': '456', 'body': 'Antoher random string', 'date': dt.now() }
@@ -41,15 +54,6 @@ class TestRoyston(unittest.TestCase):
         # normalise: normalise a string
         self.assertEqual(r.normalise('My name is Ian'), ['name', 'ian'])
 
-    def test_isupper(self):
-        self.assertTrue('FOO'.isupper())
-        self.assertFalse('Foo'.isupper())
-
-    def test_split(self):
-        s = 'hello world'
-        self.assertEqual(s.split(), ['hello', 'world'])
-        # check that s.split fails when the separator is not a string
-    
     def test_constructor(self):
         r = Royston({ 'min_trend_freq': 5 })
         self.assertEqual(r.options['min_trend_freq'], 5)
@@ -135,6 +139,27 @@ class TestRoyston(unittest.TestCase):
 
         # count: test the count returns the correct number
         self.assertEqual(r.find_docs(('random',), find_doc_options_with_subject), [])
+
+    def test_trending_correct_phrases(self):
+        print('this bit')
+        r = Royston(snapshot_test_time_options)
+
+        with open(os.path.dirname(__file__) + '/test-articles-small.json', 'r') as article_file:
+            article_data = article_file.read()
+
+        # parse file
+        articles = json.loads(article_data)
+
+
+       # articles = json.load('test-articles.json')
+        r.ingest_all(articles)
+        trends = r.trending(snapshot_test_time_options)
+
+        self.assertEqual(trends[0]['phrases'], [('game','throne','season','episod','recap'), ('episod','recap')])
+        self.assertEqual(trends[0]['score'], [124000000, 48000000])
+        self.assertEqual(trends[1]['phrases'], ['samsung,delai,galaxi,fold'])
+        self.assertEqual(trends[1]['score'], [7031.25])
+
 
 if __name__ == '__main__':
     unittest.main()
