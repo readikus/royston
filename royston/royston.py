@@ -5,10 +5,14 @@ from nltk.stem import WordNetLemmatizer
 from nltk.util import ngrams
 import datetime
 import dateparser
+import pytz
 from datetime import datetime as dt
 import dateutil.relativedelta
 from functools import reduce
 import string
+
+
+utc=pytz.UTC
 
 nltk.download('wordnet')
 nltk.download('punkt')
@@ -72,14 +76,17 @@ def expand_trend_data (trends, docs) {
 def is_sub_phrase(phrase_a, phrase_b):
 
     # if either are empty, return false
-    if len(phrase_a).length == 0 or lens(phraseB) == 0:
-        return false
+    if phrase_a == None or phrase_b == None or len(phrase_a) == 0 or len(phrase_b) == 0:
+        return False
 
     # swap phrases if a is less than b
     [a, b] = [phrase_b, phrase_a] if len(phrase_b) > len(phrase_a) else [phrase_a, phrase_b]
 
     # Given that b is either the same or shorter than a, b will be a sub set
     # a, so start matching  similar shorter  find where the first match.
+    if not b[0] in a:
+        return False
+
     start = a.index(b[0])
 
     # it was found, and check there is space
@@ -96,25 +103,14 @@ def is_sub_phrase(phrase_a, phrase_b):
 
 def remove_sub_phrases(trend_phrases):
 
-    """
-    for i in range(len(trend_phrases):
-      # (let j = i + 1; j < trend_phrases.length; j++) {
-      for j in range(i + 1, len(trend_phrases)): 
-        if (util.isSubPhrase(trend_phrases[i].phrase, trend_phrases[j].phrase)) {
-          # keep the biggest one
-          const spliceI = trend_phrases[i].length > trend_phrases[j].length ? j : i
-          # remove the element from the array
-          trend_phrases.splice(spliceI, 1)
-          # start processing again from the element that was cut out
-          i = spliceI
-          j = spliceI
-        }
-      }
-    }
-    """
-    return trend_phrases
-
-
+    # sort based on length
+    trend_phrases = sorted(trend_phrases, key=lambda ngram: -len(ngram['phrase']))
+    for i in range(len(trend_phrases)):
+        for j in range(i + 1, len(trend_phrases)):
+            if trend_phrases[i] != None and trend_phrases[j] != None and is_sub_phrase(trend_phrases[i]['phrase'], trend_phrases[j]['phrase']):
+                # keep the biggest one
+                trend_phrases[j] = None
+    return list(filter(lambda x: x != None, trend_phrases))
 
 class Royston:
 
@@ -126,20 +122,31 @@ class Royston:
         # track the usage of the ngrams
         self.ngram_history = {}
 
+    def clean_date(self, d):
+        if isinstance(d, datetime.datetime):
+            return d.replace(tzinfo=pytz.UTC)
+        return dateparser.parse(d).replace(tzinfo=pytz.UTC)
+
     def set_options(self, options):
 
         self.options = {**DEFAULT_OPTIONS, **options}
         # @todo: make this slightly less horrific!
         # only set defaults if no start date is set.
         if not 'start' in self.options:
+            #tzinfo=pytz.UTC
             self.options['end'] = dt.now()
-            self.options['start'] = dt.now() - dateutil.relativedelta.relativedelta(days = self.options['trend_days']) #moment().subtract(1, 'year')
-  
+            self.options['start'] = dt.now() - dateutil.relativedelta.relativedelta(days = self.options['trend_days'])
         # get the history window dates
         if not 'history_start' in self.options:
             self.options['history_end'] = self.options['start']
             self.options['history_start'] = self.options['history_end'] \
                 - dateutil.relativedelta.relativedelta(days = self.options['history_days'])
+
+        # clean all dates
+        self.options['history_start'] = self.clean_date(self.options['history_start'])
+        self.options['history_end'] = self.clean_date(self.options['history_end'])
+        self.options['start'] = self.clean_date(self.options['start'])
+        self.options['end'] = self.clean_date(self.options['end'])
 
     def normalise(self, s):
         """
@@ -160,11 +167,6 @@ class Royston:
             tokens.append(lemmatizer.lemmatize(word).lower())
         return tokens
 
-    def clean_date(self, d):
-
-        if isinstance(d, datetime.datetime):
-            return d
-        return dateparser.parse(d)
 
     def ingest_ngram(self, ngram, doc, n):
         """
@@ -249,6 +251,10 @@ class Royston:
         """
         Find the documents that contain the specified ngram
         """
+        # sanitise input
+        options['start'] = self.clean_date(options['start'])
+        options['end'] = self.clean_date(options['end'])
+
         if (not ngram in self.ngram_history):
             return []
         history = self.ngram_history[ngram]
@@ -360,16 +366,12 @@ class Royston:
         trend_range_days = (end - start).days
 
         # score each phrase from the trend period compared to it's historic use
-        # this is a reduce
-        def filter_phrases(phrase):
-            return None != self.get_ngram_trend(phrase, doc_phrases, trend_range_days)
+        trend_phrases = list(map(lambda phrase: self.get_ngram_trend(phrase, doc_phrases, trend_range_days), used_phrases))
+        # filter out Nones
+        trend_phrases = list(filter(lambda phrase: phrase != None, trend_phrases))
 
-        trend_phrases = list(filter(lambda phrase: filter_phrases(phrase), used_phrases))
-
-        print('trend_phrases')
-        print(trend_phrases)
-
-        if trend_phrases == None:
+        # map to ngram trends
+        if trend_phrases == None or len(trend_phrases) == 0:
             return []
 
         # remove sub phrases (i.e. "Tour de", compared to "Tour de France")
@@ -377,22 +379,26 @@ class Royston:
 
         # rank results - @todo: needs making nicer
         #todo: trend_phrases.sort((a, b) => ((b.score === a.score) ? b.phrase.length - a.phrase.length : b.score - a.score)
+        trend_phrases = sorted(trend_phrases, key=lambda phrase: -(phrase['score']))
         
-        return trend_phrases
-
         # end of trending:search
 
         # start of trending:cluster
 
         # this bit works to here!!!
-"""
+
         # run the clustering - find the phrase that is most similar to so many
         # others (i.e. i, where sum(i) = max( sum() )
-        const sc = new SimpleCluster(trend_phrases)
-        const trends = sc.cluster()
+        #const sc = new SimpleCluster(trend_phrases)
+        #const trends = sc.cluster()
 
+        # substitute for clustering....
+        trends = list(map(lambda phrase: { 'phrases': [phrase['phrase']], 'docs': phrase['docs'], 'score': [phrase['score']]}, trend_phrases))
+        return trends
+
+"""
         # rank the documents in each cluster, based on the docs etc.
-        for (let i = 0; i < trends.length; i++) {
+        for (let i = 0; i < trends.length;  i++) {
         const trend = trends[i]
         const docs = []
 
@@ -423,5 +429,6 @@ class Royston:
         if (trend_phrases.length > self.options.trendsTopN) {
         trend_phrases.splice(self.options.trendsTopN, trend_phrases.length - self.options.trendsTopN)
         }
-        return trends
+        
 """
+        
