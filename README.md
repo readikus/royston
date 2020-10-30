@@ -51,13 +51,13 @@ Currently, the main way of tuning these parameters is controlled by passing the 
 
 | Attribute      | Type   | Default | Description                      |
 |----------------|--------|---------|----------------------------------|
-| min_trend_freq | int | 4 | A threshold for the minimum number of times a phrase has to occur in a single day before it can even be considered a trend for a given subject. |
-history_days | int | 90 | The context of the number of days to consider for the history. This means we look at how often a phrase has occured over this period, and get an idea of typical use. |
-| trend_days | int | 1 | The period of time in which we want to look for trends. With the default of 1, we are looking at documents from the last day to see if new trends have emerged during that time compared with the typical use period defined by `history_days` |
-| max_n | int | 6 | The maximum size of the n-gram window (i.e. the window size of each phrase) |
-| 'keep_stops' | Boolean | False | Keep stop words, based on the `nltk` stopword list |
-| history_frequency_tolerance | Float | 1.6 | Factor the history count by this amount to handle words that just didn't get mentioned in the history period. This usefulness of this is in review, and it is likely to be removed in future (or at least set to 1 by default). |
-| trends_top_n | int | 8 | The maximum number of trends to return |
+| `min_trend_freq` | `int` | 4 | A threshold for the minimum number of times a phrase has to occur in a single day before it can even be considered a trend for a given subject. |
+| `history_days` | `int` | 90 | The context of the number of days to consider for the history. This means we look at how often a phrase has occured over this period, and get an idea of typical use. |
+| `trend_days` | `int` | 1 | The period of time in which we want to look for trends. With the default of 1, we are looking at documents from the last day to see if new trends have emerged during that time compared with the typical use period defined by `history_days` |
+| `max_n` | `int` | 6 | The maximum size of the n-gram window (i.e. the window size of each phrase) |
+| `keep_stops` | `Boolean` | `False` | Keep stop words, based on the `nltk` stopword list |
+| `history_frequency_tolerance` | `float` | 1.6 | Factor the history count by this amount to handle words that just didn't get mentioned in the history period. This usefulness of this is in review, and it is likely to be removed in future (or at least set to 1 by default). |
+| `trends_top_n` | `int` | 8 | The maximum number of trends to return |
 
 Disclaimer: the following options are currently supported but expected to change significantly in future releases:
 
