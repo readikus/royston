@@ -1,4 +1,4 @@
-# royston
+# Royston
 
 An open source, real time trend detection framework written in Python. This project uses machine learning to detect trends in text over time.
 
@@ -9,6 +9,14 @@ Documents can be grouped by a subject, so it is possible to detect "localised" t
 Based on [`ramekin`](https://github.com/readikus/ramekin), but going to take it further to do real time detection and maintaining models rather than creating them each time.
 
 ## Running tests
+
+Install `coverage` with the following command:
+
+```
+pip3 install coverage
+```
+
+Run tests:
 
 ```
 coverage run -m unittest royston.tests.royston_test -v
