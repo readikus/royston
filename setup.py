@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="royston",
-    version="0.0.1",
+    version="0.0.3",
     author="Ian Read",
     author_email="ianharveyread@gmail.com",
     description="Trending news library",
@@ -18,5 +18,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6'
+    python_requires='>=3.7'
 )

@@ -11,8 +11,7 @@ import dateutil.relativedelta
 from functools import reduce
 import string
 
-
-utc=pytz.UTC
+utc = pytz.UTC
 
 nltk.download('wordnet')
 nltk.download('punkt')
@@ -363,10 +362,9 @@ class Royston:
 
         # duplicated data used later for sorting
         doc_phrases = {}
-        trend_range_days = (end - start).days
 
         # score each phrase from the trend period compared to it's historic use
-        trend_phrases = list(map(lambda phrase: self.get_ngram_trend(phrase, doc_phrases, trend_range_days), used_phrases))
+        trend_phrases = list(map(lambda phrase: self.get_ngram_trend(phrase, doc_phrases, combined_options['trend_days']), used_phrases))
         # filter out Nones
         trend_phrases = list(filter(lambda phrase: phrase != None, trend_phrases))
 
