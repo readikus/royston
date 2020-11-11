@@ -8,7 +8,7 @@ Documents can be grouped by a subject, so it is possible to detect "localised" t
 
 Based on [`ramekin`](https://github.com/readikus/ramekin), but going to take it further to do real time detection and maintaining models rather than creating them each time.
 
-## Basic Usage
+## Installation and basic usage
 
 We are going to create a royston to contain a set of news articles, and then find the trends.
 
@@ -81,8 +81,19 @@ pip3 install coverage
 Run tests:
 
 ```
+python3 -m unittest discover -p "*_test.py"
 coverage run -m unittest royston.tests.royston_test -v
 coverage report -m  royston/royston.py
+```
+
+## Distribute
+
+Python is a ~bit~ very frustrating with tooling, so I find I have to make a lot of notes on how to package and distribute packages:
+
+```
+rm -rf dist/*
+python3 setup.py sdist bdist_wheel
+python3 -m twine upload  dist/*
 ```
 
 ## Contribute?
