@@ -11,6 +11,9 @@ import dateutil.relativedelta
 from functools import reduce
 import string
 
+
+from royston.trend_cluster import TrendCluster
+
 utc = pytz.UTC
 
 nltk.download('wordnet')
@@ -103,10 +106,10 @@ def is_sub_phrase(phrase_a, phrase_b):
 def remove_sub_phrases(trend_phrases):
 
     # sort based on length
-    trend_phrases = sorted(trend_phrases, key=lambda ngram: -len(ngram['phrase']))
+    trend_phrases = sorted(trend_phrases, key=lambda ngram: -len(ngram['phrases']))
     for i in range(len(trend_phrases)):
         for j in range(i + 1, len(trend_phrases)):
-            if trend_phrases[i] != None and trend_phrases[j] != None and is_sub_phrase(trend_phrases[i]['phrase'], trend_phrases[j]['phrase']):
+            if trend_phrases[i] != None and trend_phrases[j] != None and is_sub_phrase(trend_phrases[i]['phrases'], trend_phrases[j]['phrases']):
                 # keep the biggest one
                 trend_phrases[j] = None
     return list(filter(lambda x: x != None, trend_phrases))
@@ -114,12 +117,14 @@ def remove_sub_phrases(trend_phrases):
 class Royston:
 
     def __init__(self, options = {}):
+        #print('this ersion')
         self.set_options(options)
         self.docs = {}
         # initialise the multi-dimensional ngram array storage
         self.ngrams = [ [] for _ in range(self.options['max_n'] + 1) ]
         # track the usage of the ngrams
         self.ngram_history = {}
+        self.last_ingest_id = None
 
     def clean_date(self, d):
         if isinstance(d, datetime.datetime):
@@ -222,13 +227,19 @@ class Royston:
             for ngram in doc_ngrams:
                 self.ingest_ngram(ngram, doc, n)
 
+        # record the id of the last ingest document
+        self.last_ingest_id = doc['id']
+
     def ingest_all(self, docs):
+        #print(docs)
         """
         ingests a set of documents into the current Royston.
         :param {docs}: a set of documents in the format expected format
         """
         for doc in docs:
             self.ingest(doc)
+
+        #print(self.ngram_history)
 
     def used_phrases(self, start, end):
         """
@@ -245,6 +256,28 @@ class Royston:
                 if occurance['date'] >= start and occurance['date'] < end:
                     used.add(ngram)
         return list(used)
+
+    def prune(self):
+        """
+        Super simple method that prunes in the following conditions:
+
+        1) before the start of the history (self.options['history_start'])
+        2) the phrase was used only in the history period once
+        """
+        def is_in_range(occurance):
+            #print("occurance['date']")
+            #print(occurance['date'])
+            #print("self.options['history_start']")
+            #print(self.options['history_start'])
+            return occurance['date'] >= self.options['history_start']
+
+        ngrams = list(self.ngram_history.keys())
+
+        for ngram in ngrams:
+            # remove anything before the start of our considered history (i.e. stuff that is two old for us to care about)
+            self.ngram_history[ngram]['occurances'] = list(filter(is_in_range, self.ngram_history[ngram]['occurances']))
+            if len(self.ngram_history[ngram]['occurances']) < 2:
+                del self.ngram_history[ngram]
 
     def find_docs(self, ngram, options):
         """
@@ -280,15 +313,12 @@ class Royston:
         matching_docs = self.find_docs(ngram, options)
         return len(matching_docs)
 
-
     #  change start and end time to be part of options early on...
     def get_ngram_trend (self, ngram, doc_phrases, trend_range_days):
         """
-
         Does the trend analysis related to an ngram.
 
         this needs a proper name and explaination
-
         """
 
         # score if the phrase has trended in the last 24 hours
@@ -308,7 +338,7 @@ class Royston:
         # if it's above the average
         if ((trend_range_count > self.options['min_trend_freq']) and (trend_range_count > history_day_average)):
             phrase = {
-                'phrase': ngram,
+                'phrases': ngram,
                 'score': history_trend_range_ratio * len(ngram),
                 'history_range_count': history_range_count,
                 'trend_range_count': trend_range_count,
@@ -320,7 +350,31 @@ class Royston:
             return phrase
         
         return None
-  
+
+    def rank_trends(self, trends, doc_phrases, top_n):
+
+        # rank the documents in each cluster, based on the docs etc.
+        for trend in trends:
+            docs = []
+            # for each document in that trend, count the number of phrases that match
+            for doc in trend['docs']:
+                # count the number of phrases from the cluster that are in that doc
+                inter = set(doc_phrases[doc]).intersection(set(trend['phrases']))
+                matches = len(inter)
+                docs.append({ 'doc': doc, 'matches': matches })
+            
+
+            # sort based on the number of matches
+            docs = sorted(docs, key=lambda x: x['matches'], reverse=True)
+            #docs.sort((a, b) => b.matches - a.matches)
+            # remove unnecessary sort data now it is sorted
+            #trend.docs = docs.map(doc => doc.doc)
+            trend['docs'] = [doc['doc'] for doc in docs]
+        
+
+        # trim to just options.trendsTopN
+        return trends[0:top_n]
+
     """
     Validate the trending options, setting defaults where necessary.
     @todo: this whole block is manky and needs a refactor - setup, search and cluster
@@ -387,46 +441,12 @@ class Royston:
 
         # run the clustering - find the phrase that is most similar to so many
         # others (i.e. i, where sum(i) = max( sum() )
+        sc = TrendCluster(trend_phrases)
+
         #const sc = new SimpleCluster(trend_phrases)
         #const trends = sc.cluster()
+        trends = sc.cluster()
 
         # substitute for clustering....
-        trends = list(map(lambda phrase: { 'phrases': [phrase['phrase']], 'docs': phrase['docs'], 'score': [phrase['score']]}, trend_phrases))
-        return trends
-
-"""
-        # rank the documents in each cluster, based on the docs etc.
-        for (let i = 0; i < trends.length;  i++) {
-        const trend = trends[i]
-        const docs = []
-
-        # for each document in that trend, count the number of phrases that match
-        for (let j = 0; j < trend.docs.length; j++) {
-            const doc = trend.docs[j]
-
-            /*
-            let a = new Set([1,2,3]);
-            let b = new Set([4,3,2]);
-            let intersection = new Set(
-                [...a].filter(x => b.has(x)));
-            */
-            # count the number of phrases from the cluster that are in that doc
-            const matches = _.intersection(docPhrases[doc], trend.phrases).length
-            docs.push({ doc, matches })
-        }
-
-        # sort based on the number of matches
-        docs.sort((a, b) => b.matches - a.matches)
-        # remove unnecessary sort data now it is sorted
-        trend.docs = docs.map(doc => doc.doc)
-        }
-
-        # end of trending:cluster
-
-        # trim to just options.trendsTopN
-        if (trend_phrases.length > self.options.trendsTopN) {
-        trend_phrases.splice(self.options.trendsTopN, trend_phrases.length - self.options.trendsTopN)
-        }
-        
-"""
-        
+        #trends = list(map(lambda phrase: { 'phrases': [phrase['phrases']], 'docs': phrase['docs'], 'score': [phrase['score']]}, trend_phrases))
+        return self.rank_trends(trends, doc_phrases, self.options['trends_top_n'])

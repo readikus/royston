@@ -17,6 +17,14 @@ snapshot_test_time_options = {
   'end': dt(2019, 1, 21, 23, 59, 5, tzinfo=pytz.UTC)
 }
 
+old_test_doc_1 = { 'id': '123', 'body': 'Random text string', 'date': dt(2000, 1, 20, 0, 0, 1, tzinfo=pytz.UTC) }
+old_test_doc_2 = { 'id': '456', 'body': 'Antoher random string', 'date': dt(2000, 1, 12, 0, 0, 1, tzinfo=pytz.UTC) }
+
+old_valid_time_options = {
+  'start': dt(2000, 1, 20, 0, 0, 1, tzinfo=pytz.UTC),
+  'end': dt(2019, 1, 21, 23, 59, 5, tzinfo=pytz.UTC)
+}
+
 test_doc = { 'id': '123', 'body': 'Random text string', 'date': dt.now(pytz.UTC) }
 test_doc_2 = { 'id': '456', 'body': 'Antoher random string', 'date': dt.now(pytz.UTC) }
 no_id_test_doc = { 'body': 'Another random string', 'date': dt.now(pytz.UTC) }
@@ -61,10 +69,10 @@ class TestRoyston(unittest.TestCase):
         self.assertEqual(is_sub_phrase(None, None), False)
 
     def test_remove_sub_phrases(self):
-        self.assertEqual(remove_sub_phrases([{ 'phrase': ('enduro', 'world'), 'score': 562.5, 'history_range_count': 1, 'trend_range_count': 5, 'history_day_average': 0.017777777777777778, 'history_trend_range_ratio': 281.25, 'docs': ['16', '17', '18', '19', '20']}, {'phrase': ('world',), 'score': 281.25, 'history_range_count': 1, 'trend_range_count': 5, 'history_day_average': 0.017777777777777778, 'history_trend_range_ratio': 281.25, 'docs': ['16', '17', '18', '19', '20']}]), [{'phrase': ('enduro', 'world'), 'score': 562.5, 'history_range_count': 1, 'trend_range_count': 5, 'history_day_average': 0.017777777777777778, 'history_trend_range_ratio': 281.25, 'docs': ['16', '17', '18', '19', '20']}])
-        self.assertEqual(remove_sub_phrases([{ 'phrase': ('a',)}, { 'phrase': ('a','b')}]), [{ 'phrase': ('a','b')}])
-        self.assertEqual(remove_sub_phrases([{ 'phrase': ('a','b')}, { 'phrase': ('a',)}]), [{ 'phrase': ('a','b')}])
-        self.assertEqual(remove_sub_phrases([{ 'phrase': ('c',)}, { 'phrase': ('a','b')}]), [{ 'phrase': ('a','b')}, { 'phrase': ('c',) }])
+        self.assertEqual(remove_sub_phrases([{ 'phrases': ('enduro', 'world'), 'score': 562.5, 'history_range_count': 1, 'trend_range_count': 5, 'history_day_average': 0.017777777777777778, 'history_trend_range_ratio': 281.25, 'docs': ['16', '17', '18', '19', '20']}, {'phrases': ('world',), 'score': 281.25, 'history_range_count': 1, 'trend_range_count': 5, 'history_day_average': 0.017777777777777778, 'history_trend_range_ratio': 281.25, 'docs': ['16', '17', '18', '19', '20']}]), [{'phrases': ('enduro', 'world'), 'score': 562.5, 'history_range_count': 1, 'trend_range_count': 5, 'history_day_average': 0.017777777777777778, 'history_trend_range_ratio': 281.25, 'docs': ['16', '17', '18', '19', '20']}])
+        self.assertEqual(remove_sub_phrases([{ 'phrases': ('a',)}, { 'phrases': ('a','b')}]), [{ 'phrases': ('a','b')}])
+        self.assertEqual(remove_sub_phrases([{ 'phrases': ('a','b')}, { 'phrases': ('a',)}]), [{ 'phrases': ('a','b')}])
+        self.assertEqual(remove_sub_phrases([{ 'phrases': ('c',)}, { 'phrases': ('a','b')}]), [{ 'phrases': ('a','b')}, { 'phrases': ('c',) }])
 
     def test_normalise(self):
         r = Royston()

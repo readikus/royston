@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="royston",
-    version="0.0.4",
+    version="0.0.5",
     author="Ian Read",
     author_email="ianharveyread@gmail.com",
     description="Trending news library",
