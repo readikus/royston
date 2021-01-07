@@ -117,7 +117,6 @@ def remove_sub_phrases(trend_phrases):
 class Royston:
 
     def __init__(self, options = {}):
-        #print('this ersion')
         self.set_options(options)
         self.docs = {}
         # initialise the multi-dimensional ngram array storage
@@ -231,15 +230,12 @@ class Royston:
         self.last_ingest_id = doc['id']
 
     def ingest_all(self, docs):
-        #print(docs)
         """
         ingests a set of documents into the current Royston.
         :param {docs}: a set of documents in the format expected format
         """
         for doc in docs:
             self.ingest(doc)
-
-        #print(self.ngram_history)
 
     def used_phrases(self, start, end):
         """
@@ -265,10 +261,6 @@ class Royston:
         2) the phrase was used only in the history period once
         """
         def is_in_range(occurance):
-            #print("occurance['date']")
-            #print(occurance['date'])
-            #print("self.options['history_start']")
-            #print(self.options['history_start'])
             return occurance['date'] >= self.options['history_start']
 
         ngrams = list(self.ngram_history.keys())
@@ -276,6 +268,7 @@ class Royston:
         for ngram in ngrams:
             # remove anything before the start of our considered history (i.e. stuff that is two old for us to care about)
             self.ngram_history[ngram]['occurances'] = list(filter(is_in_range, self.ngram_history[ngram]['occurances']))
+            # BUG: this needs to count number of times it happened in the past (OR cron to run only daily - but that's a bit lazy)
             if len(self.ngram_history[ngram]['occurances']) < 2:
                 del self.ngram_history[ngram]
 
