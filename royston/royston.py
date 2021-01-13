@@ -3,14 +3,12 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.util import ngrams
-import datetime
 import dateparser
 import pytz
 from datetime import datetime as dt
 import dateutil.relativedelta
 from functools import reduce
 import string
-
 
 from royston.trend_cluster import TrendCluster
 
@@ -126,7 +124,7 @@ class Royston:
         self.last_ingest_id = None
 
     def clean_date(self, d):
-        if isinstance(d, datetime.datetime):
+        if isinstance(d, dt):
             return d.replace(tzinfo=pytz.UTC)
         return dateparser.parse(d).replace(tzinfo=pytz.UTC)
 
@@ -286,11 +284,11 @@ class Royston:
 
         def matcher(doc):
             full_doc = self.docs[doc['doc_id']]
-            return (doc['date'] >= options['start'] and doc['date'] < options['end'] and
-                ((not 'subject' in options) or
-                    ('subject' in full_doc and options['subject'] == full_doc['subject'])))
+            # all explicit, as this is really odd at the minute
+            return (not 'subject' in options) or ('subject' in full_doc and options['subject'] == full_doc['subject'])
 
         history_in_range = list(filter(lambda doc: matcher(doc), history['occurances']))
+
         # return just the ids
         return list(map(lambda history: history['doc_id'], history_in_range))
 
@@ -307,7 +305,9 @@ class Royston:
         return len(matching_docs)
 
     #  change start and end time to be part of options early on...
-    def get_ngram_trend (self, ngram, doc_phrases, trend_range_days):
+    def get_ngram_trend (self, ngram, doc_phrases, combined_options):
+
+
         """
         Does the trend analysis related to an ngram.
 
@@ -317,13 +317,13 @@ class Royston:
         # score if the phrase has trended in the last 24 hours
 
         # const trendDocs = self.findDocs(ngram, { start: self.options.start, end: self.options.end })
-        trend_docs = self.find_docs(ngram, self.options)
+        trend_docs = self.find_docs(ngram, combined_options)
         trend_range_count = len(trend_docs)
         ###history_options = { }
         history_range_count = self.count(ngram, { 'start': self.options['history_start'], 'end': self.options['history_end'] })
         history_day_average = self.options['history_frequency_tolerance'] * history_range_count / self.options['history_days']
 
-        trend_day_average = trend_range_count / trend_range_days
+        trend_day_average = trend_range_count / combined_options['trend_days']
         history_trend_range_ratio = (trend_day_average / (0.000001 if history_range_count == 0 else history_day_average))
 
         # add in the tolerance
@@ -378,24 +378,7 @@ class Royston:
         class just for the trending
         """
 
-        # maybe make it take customer commands for timings - but in reality, it's going to be real time..
-        # 
-        """
-        # setup
-        /*
-        # only set defaults if no start date is set.
-        if (!options.start) {
-        options.start = new Date()
-        options.end = new Date()
-        options.start.setDate(options.end.getDate() - 1)
-        }
-        # get the history window dates
-        if (!options.historyStart) {
-        options.historyEnd = new Date(options.start)
-        options.historyStart = moment(options.historyEnd).subtract(
-            self.options.historyDays, 'day').toDate()
-        } */
-        """
+        # @todo: make work in real time for date ranges, unless specified.
 
         # end of setup
 
@@ -405,13 +388,14 @@ class Royston:
         end = combined_options['end']
 
         # find all the common phrases used in respective subject, over the past day
+        # this doesn't filter by subject, but it therefore should get everything, and not be a problem?
         used_phrases = self.used_phrases(start, end)
 
         # duplicated data used later for sorting
         doc_phrases = {}
 
         # score each phrase from the trend period compared to it's historic use
-        trend_phrases = list(map(lambda phrase: self.get_ngram_trend(phrase, doc_phrases, combined_options['trend_days']), used_phrases))
+        trend_phrases = list(map(lambda phrase: self.get_ngram_trend(phrase, doc_phrases, combined_options), used_phrases))
         # filter out Nones
         trend_phrases = list(filter(lambda phrase: phrase != None, trend_phrases))
 
@@ -424,7 +408,7 @@ class Royston:
 
         # rank results - @todo: needs making nicer
         #todo: trend_phrases.sort((a, b) => ((b.score === a.score) ? b.phrase.length - a.phrase.length : b.score - a.score)
-        trend_phrases = sorted(trend_phrases, key=lambda phrase: -(phrase['score']))
+        trend_phrases = sorted(trend_phrases, key=lambda phrase: (-(phrase['score']), phrase['phrases']))
         
         # end of trending:search
 
@@ -435,11 +419,6 @@ class Royston:
         # run the clustering - find the phrase that is most similar to so many
         # others (i.e. i, where sum(i) = max( sum() )
         sc = TrendCluster(trend_phrases)
-
-        #const sc = new SimpleCluster(trend_phrases)
-        #const trends = sc.cluster()
         trends = sc.cluster()
-
         # substitute for clustering....
-        #trends = list(map(lambda phrase: { 'phrases': [phrase['phrases']], 'docs': phrase['docs'], 'score': [phrase['score']]}, trend_phrases))
         return self.rank_trends(trends, doc_phrases, self.options['trends_top_n'])

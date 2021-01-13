@@ -30,7 +30,13 @@ test_doc_2 = { 'id': '456', 'body': 'Antoher random string', 'date': dt.now(pytz
 no_id_test_doc = { 'body': 'Another random string', 'date': dt.now(pytz.UTC) }
 no_date_test_doc = { 'id': '123', 'body': 'Another random string' }
 
-now = dt.now()
+subject_test_doc_1 = { 'id': '1', 'body': 'Random text string', 'date': dt.now(pytz.UTC), 'subject': 'wombles' }
+subject_test_doc_2 = { 'id': '2', 'body': 'I tie laces with string', 'date': dt.now(pytz.UTC), 'subject': 'wombles' }
+subject_test_doc_3 = { 'id': '3', 'body': 'Can you string a sentence together', 'date': dt.now(pytz.UTC), 'subject': 'wombles' }
+subject_test_doc_4 = { 'id': '4', 'body': 'My fave theory is string theory', 'date': dt.now(pytz.UTC), 'subject': 'wombles' }
+subject_test_doc_5 = { 'id': '5', 'body': 'I live on a shoe string', 'date': dt.now(pytz.UTC), 'subject': 'wombles' }
+
+now = dt.now(pytz.UTC   )
 
 used_phrases = [
   ('antoher',),
@@ -46,10 +52,10 @@ used_phrases = [
 
 find_doc_options = {
   'start': now - dateutil.relativedelta.relativedelta(months = 1),
-  'end': dt.now()
+  'end': dt.now(pytz.UTC)
 }
 
-find_doc_options_with_subject = {**find_doc_options, 'subject': 'Polar  Bears'}
+find_doc_options_with_subject = {**find_doc_options, 'subject': 'wombles'}
 
 past_history_options = {
   'start': now - dateutil.relativedelta.relativedelta(years = 2), #moment().subtract(2, 'year'),
@@ -109,18 +115,15 @@ class TestRoyston(unittest.TestCase):
             r.ingest(test_doc)
 
     def test_ingest_all(self):
-        """
-        Test ingest_all ingests multiple documents
-        """
+        # Test ingest_all ingests multiple documents
+
         r = Royston({ 'min_trend_freq': 5 })
         self.assertEqual(r.docs, {})
         r.ingest_all([test_doc, test_doc_2])
         self.assertEqual(r.docs, { test_doc['id']: test_doc, test_doc_2['id']: test_doc_2 })
 
     def test_used_phrases(self):
-        """
-        Test used_phrases returns the correct phrases
-        """
+        #Test used_phrases returns the correct phrases
         r = Royston({ 'min_trend_freq': 5 })
         r.ingest_all([test_doc, test_doc_2])
         computed_phrases = r.used_phrases(find_doc_options['start'], find_doc_options['end'])
@@ -129,12 +132,11 @@ class TestRoyston(unittest.TestCase):
         self.assertEqual(computed_phrases, used_phrases)
         self.assertEqual(computed_phrases, used_phrases)
 
-        computed_phrases = r.used_phrases(find_doc_options['start'], find_doc_options['end'])
+        computed_phrases = r.used_phrases(r.clean_date(find_doc_options['start']), r.clean_date(find_doc_options['end']))
 
         # check the date filter is working to ignore stuff out of range
         r.used_phrases(find_doc_options['start'], find_doc_options['end'])
         self.assertEqual([], r.used_phrases(past_history_options['start'], past_history_options['end']))
-
 
     def test_count(self):
 
@@ -143,10 +145,10 @@ class TestRoyston(unittest.TestCase):
 
         # count: test the count returns the correct number
         self.assertEqual(r.count(('random',), find_doc_options), 2)
-        self.assertEqual(r.count(('random','string'), find_doc_options), 1)
-        self.assertEqual(r.count(('not','random','string'), find_doc_options), 0)
+        self.assertEqual(r.count(('random', 'string'), find_doc_options), 1)
+        self.assertEqual(r.count(('not', 'random', 'string'), find_doc_options), 0)
 
-        #count: not in date range
+        # count: not in date range
         self.assertEqual(r.count(('random'), past_history_options), 0)
 
     def test_find_docs(self):
@@ -160,10 +162,14 @@ class TestRoyston(unittest.TestCase):
     def test_find_docs_with_subject(self):
 
         r = Royston({})
-        r.ingest_all([test_doc, test_doc_2])
+        r.ingest_all([test_doc, test_doc_2, subject_test_doc_1, subject_test_doc_2, subject_test_doc_3, subject_test_doc_4, subject_test_doc_5])
 
         # count: test the count returns the correct number
-        self.assertEqual(r.find_docs(('random',), find_doc_options_with_subject), [])
+        all_docs = r.find_docs(('string',), find_doc_options)
+        subject_docs = r.find_docs(('string',), find_doc_options_with_subject)
+
+        self.assertEqual(len(all_docs), 7)
+        self.assertEqual(len(subject_docs), 5)
 
     def test_trending_correct_phrases(self):
         r = Royston(snapshot_test_time_options)
@@ -179,9 +185,9 @@ class TestRoyston(unittest.TestCase):
         trends = r.trending(snapshot_test_time_options)
 
         self.assertEqual(trends[0]['phrases'], [('enduro', 'world', 'series')])
-        self.assertEqual(trends[0]['score'],  [843.75])
-        self.assertEqual(trends[1]['phrases'], [('yeti',)])
-        self.assertEqual(trends[1]['score'], [450.0])
+        self.assertEqual(trends[0]['score'],  [168.74999999999994])
+        self.assertEqual(trends[1]['phrases'], [('sb150',), ('yeti',)])
+        self.assertEqual(trends[1]['score'], [56.25, 56.25])
 
     def test_trending_no_data(self):
         r = Royston({})

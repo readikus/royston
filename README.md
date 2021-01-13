@@ -83,6 +83,10 @@ Run tests:
 ```
 python3 -m unittest discover -p "*_test.py"
 coverage run -m unittest royston.tests.royston_test -v
+
+coverage run -m unittest discover -p "*_test.py"
+
+coverage run -m unittest discover -p "*_test.py"
 coverage report -m  royston/royston.py
 ```
 
