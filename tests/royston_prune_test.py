@@ -66,7 +66,7 @@ class TestRoystonPrune(unittest.TestCase):
         # set the options to now...
         r.set_options(find_doc_options)
         # check count before prune (i.e. contains old docs)
-        self.assertEqual(r.find_docs(('enduro',), snapshot_test_time_options), ['15', '16', '17', '18', '19', '20'])
+        self.assertEqual(r.find_docs(('enduro',), snapshot_test_time_options), ['12', '15', '16', '17', '18', '19', '20'])
         r.prune()
         # check the old docs have been pruned out
         self.assertEqual(r.find_docs(('enduro',), snapshot_test_time_options), [])

@@ -41,7 +41,7 @@ def merge(i, j):
 def closet_match(d, threshold):
     # nothing left to cluster -> everything has already clustered
     if len(d) == 1:
-        return undefined
+        return None
     # @todo: add validation.
     min = { 'i': 0, 'j': 1 } # point to the first non symetrical match
     # find the closest matches
