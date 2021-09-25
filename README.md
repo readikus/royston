@@ -72,33 +72,21 @@ Currently they are calculate in the constructor only, which is stupid, as we wan
 
 ## Running tests
 
-Install `coverage` with the following command:
-
 ```
-pip3 install coverage
+poetry run test
 ```
 
-Run tests:
+Run coverage reports:
 
 ```
-python3 -m unittest discover -p "*_test.py"
-coverage run -m unittest royston.tests.royston_test -v
-
-coverage run -m unittest discover -p "*_test.py"
-
-coverage run -m unittest discover -p "*_test.py"
-coverage report -m  royston/royston.py
+poetry run coverage
 ```
 
 ## Distribute
 
-Python is a ~bit~ very frustrating with tooling, so I find I have to make a lot of notes on how to package and distribute packages:
+This now uses poetry for package management, which can be done with the following command:
 
-```
-rm -rf dist/*
-python3 setup.py sdist bdist_wheel
-python3 -m twine upload  dist/*
-```
+```poetry build && poetry publish``
 
 ## Contribute?
 

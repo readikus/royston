@@ -1,25 +1,16 @@
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
 from nltk.util import ngrams
+import datetime
 import dateparser
 import pytz
 from datetime import datetime as dt
 import dateutil.relativedelta
 from functools import reduce
-import string
+import gensim
 
 from royston.trend_cluster import TrendCluster
+from royston.util import normalise
 
 utc = pytz.UTC
-
-nltk.download('wordnet')
-nltk.download('punkt')
-nltk.download('stopwords')
-
-lemmatizer = WordNetLemmatizer() 
-stop_words = set(stopwords.words('english')) 
 
 DEFAULT_OPTIONS = {
     # a threshold for the minimum number of times a phrase has to occur
@@ -115,6 +106,7 @@ def remove_sub_phrases(trend_phrases):
 class Royston:
 
     def __init__(self, options = {}):
+        self.options = {}
         self.set_options(options)
         self.docs = {}
         # initialise the multi-dimensional ngram array storage
@@ -122,52 +114,74 @@ class Royston:
         # track the usage of the ngrams
         self.ngram_history = {}
         self.last_ingest_id = None
+        self.doc2vec_docs = []
+        self.doc2vec_tokens = {}
 
     def clean_date(self, d):
-        if isinstance(d, dt):
+        if isinstance(d, datetime.datetime):
             return d.replace(tzinfo=pytz.UTC)
         return dateparser.parse(d).replace(tzinfo=pytz.UTC)
 
+    def get_history_period(self, history_days = None, trend_days = None, start = None):
+
+        if history_days == None:
+            history_days = self.options['history_days']
+        if trend_days == None:
+            trend_days = self.options['trend_days']
+        if start == None:
+            start = dt.now() if 'start' not in self.options else self.options['start']
+
+        history_end = start# - dateutil.relativedelta.relativedelta(days = trend_days)
+        history_start = history_end - dateutil.relativedelta.relativedelta(days = history_days)
+        return [history_start, history_end]
+
+    # returns the date range for the trend period
+    def get_trend_period(self, trend_days = None):
+        if trend_days == None:
+            trend_days = self.options['trend_days']
+        return [dt.now() - dateutil.relativedelta.relativedelta(days = trend_days), dt.now()]
+
+    def set_periods(self, history_days = None, trend_days = None):
+        [start, end] = self.get_trend_period(trend_days)
+        [history_start, history_end] = self.get_history_period(trend_days)
+
+        self.options = {**self.options, 
+            'start': start,
+            'end': end,
+            'history_start': history_start,
+            'history_end': history_end}
+
     def set_options(self, options):
 
-        self.options = {**DEFAULT_OPTIONS, **options}
+        # time periods being reconfigured, but ambigious
+        if 'start' in options and 'history_start' not in options and 'start' in self.options and 'history_start' in self.options:
+            raise Exception('start is specified in the new options, but history_start has not been specified')
+
+        self.options = {**DEFAULT_OPTIONS, **self.options, **options}
+
+        # none specified - so recalculate @TODO: don't store time, if it's always to be live...
+        if 'start' not in options:## and 'history_start' not in options:
+            self.set_periods()
+
+        if 'history_start' not in self.options:
+            [history_start, history_end] = self.get_history_period()
+            self.options = {**self.options, **{ 'history_start': history_start, 'history_end': history_end}}
+
+        """
+
         # @todo: make this slightly less horrific!
         # only set defaults if no start date is set.
         if not 'start' in self.options:
-            #tzinfo=pytz.UTC
             self.options['end'] = dt.now()
             self.options['start'] = dt.now() - dateutil.relativedelta.relativedelta(days = self.options['trend_days'])
         # get the history window dates
-        if not 'history_start' in self.options:
-            self.options['history_end'] = self.options['start']
-            self.options['history_start'] = self.options['history_end'] \
-                - dateutil.relativedelta.relativedelta(days = self.options['history_days'])
-
+        """
         # clean all dates
+        #for date
         self.options['history_start'] = self.clean_date(self.options['history_start'])
         self.options['history_end'] = self.clean_date(self.options['history_end'])
         self.options['start'] = self.clean_date(self.options['start'])
         self.options['end'] = self.clean_date(self.options['end'])
-
-    def normalise(self, s):
-        """
-        Text analysis stage to take some raw text and convert
-        it into a format that we can ingest optimally.
-        @todo: create a function to map the original text
-        with the normalised version. Or try maintaining capitalisation etc.
-        """ 
-        words = word_tokenize(s)
-        filtered_sentence = [w for w in words if not w.lower() in stop_words]
-
-        table = str.maketrans('', '', string.punctuation)
-        filtered_sentence = [w.translate(table) for w in filtered_sentence]
-        filtered_sentence = list(filter(lambda w: len(w) > 0, filtered_sentence))
-
-        tokens = []
-        for word in filtered_sentence:
-            tokens.append(lemmatizer.lemmatize(word).lower())
-        return tokens
-
 
     def ingest_ngram(self, ngram, doc, n):
         """
@@ -219,13 +233,17 @@ class Royston:
         self.docs[doc['id']] = doc
 
         # generate all the [1...n]-grams for the document
+        tokens = normalise(doc['body'])
         for n in range(1, self.options['max_n'] + 1):
-            doc_ngrams = ngrams(self.normalise(doc['body']), n)
+            doc_ngrams = ngrams(tokens, n)
             for ngram in doc_ngrams:
                 self.ingest_ngram(ngram, doc, n)
 
         # record the id of the last ingest document
         self.last_ingest_id = doc['id']
+
+        self.ingest_doc2vec(tokens, doc['id'])
+        self.doc2vec_tokens[doc['id']] = tokens
 
     def ingest_all(self, docs):
         """
@@ -234,6 +252,17 @@ class Royston:
         """
         for doc in docs:
             self.ingest(doc)
+
+    # @todo: support subjects
+    def ingest_doc2vec(self, tokens, doc_id):
+
+        # For training data, add tags 
+        self.doc2vec_docs.append(gensim.models.doc2vec.TaggedDocument(tokens, [doc_id]))
+
+    def train_doc2vec(self):
+        self.doc2vec_model = gensim.models.doc2vec.Doc2Vec(vector_size=500, min_count=2, epochs=2000)
+        self.doc2vec_model.build_vocab(self.doc2vec_docs)
+        self.doc2vec_model.train(self.doc2vec_docs, total_examples=self.doc2vec_model.corpus_count, epochs=self.doc2vec_model.epochs)
 
     def used_phrases(self, start, end):
         """
@@ -258,15 +287,15 @@ class Royston:
         1) before the start of the history (self.options['history_start'])
         2) the phrase was used only in the history period once
         """
+
         def is_in_range(occurance):
             return occurance['date'] >= self.options['history_start']
 
         ngrams = list(self.ngram_history.keys())
-
         for ngram in ngrams:
             # remove anything before the start of our considered history (i.e. stuff that is two old for us to care about)
             self.ngram_history[ngram]['occurances'] = list(filter(is_in_range, self.ngram_history[ngram]['occurances']))
-            # BUG: this needs to count number of times it happened in the past (OR cron to run only daily - but that's a bit lazy)
+            # @TODO: BUG: this needs to count number of times it happened in the past (OR cron to run only daily - but that's a bit lazy)
             if len(self.ngram_history[ngram]['occurances']) < 2:
                 del self.ngram_history[ngram]
 
@@ -278,17 +307,28 @@ class Royston:
         options['start'] = self.clean_date(options['start'])
         options['end'] = self.clean_date(options['end'])
 
+        # not found - return nothing
         if (not ngram in self.ngram_history):
             return []
+
         history = self.ngram_history[ngram]
 
         def matcher(doc):
             full_doc = self.docs[doc['doc_id']]
-            # all explicit, as this is really odd at the minute
-            return (not 'subject' in options) or ('subject' in full_doc and options['subject'] == full_doc['subject'])
+            """
+            this is useful for debugging, so leaving in for now
+            dates_in_range = doc['date'] >= options['start'] and doc['date'] < options['end']
+            subject_match = ((not 'subject' in options) or
+                    ('subject' in full_doc and options['subject'] == full_doc['subject']))
+            print('dates_in_range', dates_in_range)
+            print('subject_match', subject_match)
+            print('options actually has a subject', 'subject' in options, options)
+            """
+            return (doc['date'] >= options['start'] and doc['date'] < options['end'] and
+                ((not 'subject' in options) or
+                    ('subject' in full_doc and options['subject'] == full_doc['subject'])))
 
         history_in_range = list(filter(lambda doc: matcher(doc), history['occurances']))
-
         # return just the ids
         return list(map(lambda history: history['doc_id'], history_in_range))
 
@@ -301,12 +341,41 @@ class Royston:
         :param options:
         :return int:
         """
-        matching_docs = self.find_docs(ngram, options)
-        return len(matching_docs)
+        return len(self.find_docs(ngram, options))
+
+    def count_history(self, ngram):
+        return self.count(ngram, { 'start': self.options['history_start'], 'end': self.options['history_end'] })
+
+    def count_trend_period(self, ngram):
+        return self.count(ngram, { 'start': self.options['start'], 'end': self.options['end'] })
+
+    # MERGE THIS WITH GET_NGRAM_TREND, BUT I JUST CAN'T BE FUCKED RIGHT NOW
+    def get_ngram_stats (self, ngram, combined_options):
+        # const trendDocs = self.findDocs(ngram, { start: self.options.start, end: self.options.end })
+        trend_docs = self.find_docs(ngram, combined_options)
+        trend_range_count = len(trend_docs)
+        ###history_options = { }
+        history_range_count = self.count(ngram, { 'start': self.options['history_start'], 'end': self.options['history_end'] })
+        history_day_average = self.options['history_frequency_tolerance'] * history_range_count / self.options['history_days']
+
+        trend_day_average = trend_range_count / combined_options['trend_days']
+        history_trend_range_ratio = (trend_day_average / (0.000001 if history_range_count == 0 else history_day_average))
+
+        change = trend_day_average - history_day_average
+        change_percent = (change / (0.000001 if history_range_count == 0 else history_day_average)) * 100
+
+        return {
+            'trend_range_count': trend_range_count,
+            'history_range_count': history_range_count,
+            'history_day_average': history_day_average,
+            'trend_day_average': trend_day_average,
+            'history_trend_range_ratio': history_trend_range_ratio,
+            'change_percent': change_percent,
+            'change': change            
+        }
 
     #  change start and end time to be part of options early on...
     def get_ngram_trend (self, ngram, doc_phrases, combined_options):
-
 
         """
         Does the trend analysis related to an ngram.
@@ -319,22 +388,28 @@ class Royston:
         # const trendDocs = self.findDocs(ngram, { start: self.options.start, end: self.options.end })
         trend_docs = self.find_docs(ngram, combined_options)
         trend_range_count = len(trend_docs)
-        ###history_options = { }
         history_range_count = self.count(ngram, { 'start': self.options['history_start'], 'end': self.options['history_end'] })
         history_day_average = self.options['history_frequency_tolerance'] * history_range_count / self.options['history_days']
 
         trend_day_average = trend_range_count / combined_options['trend_days']
         history_trend_range_ratio = (trend_day_average / (0.000001 if history_range_count == 0 else history_day_average))
 
+        trend_range_daily_average = trend_range_count / combined_options['trend_days']
+
+        change = trend_day_average - history_day_average
+        change_percent = (change / (0.000001 if history_range_count == 0 else history_day_average)) * 100
+
         # add in the tolerance
 
         # if it's above the average
-        if ((trend_range_count > self.options['min_trend_freq']) and (trend_range_count > history_day_average)):
+        # history_day_average
+        if ((trend_range_count > self.options['min_trend_freq']) and (change_percent > 0)):
             phrase = {
                 'phrases': ngram,
-                'score': history_trend_range_ratio * len(ngram),
+                'score': change_percent * len(ngram), #history_trend_range_ratio * len(ngram),
                 'history_range_count': history_range_count,
                 'trend_range_count': trend_range_count,
+                'trend_day_average': trend_day_average,
                 'history_day_average': history_day_average,
                 'history_trend_range_ratio': history_trend_range_ratio,
                 'docs': trend_docs
@@ -355,15 +430,11 @@ class Royston:
                 inter = set(doc_phrases[doc]).intersection(set(trend['phrases']))
                 matches = len(inter)
                 docs.append({ 'doc': doc, 'matches': matches })
-            
 
             # sort based on the number of matches
             docs = sorted(docs, key=lambda x: x['matches'], reverse=True)
-            #docs.sort((a, b) => b.matches - a.matches)
             # remove unnecessary sort data now it is sorted
-            #trend.docs = docs.map(doc => doc.doc)
             trend['docs'] = [doc['doc'] for doc in docs]
-        
 
         # trim to just options.trendsTopN
         return trends[0:top_n]
@@ -371,14 +442,20 @@ class Royston:
     """
     Validate the trending options, setting defaults where necessary.
     @todo: this whole block is manky and needs a refactor - setup, search and cluster
+    @todo: Create TrendingStrategy - this is then passed as a param for doing the trending this way.
     """
     def trending(self, options = {}):
+
+        # if times ranges aren't specified, calcuate and stash here....
+        # brittle - if 'start' is set, assumes all 4 dates are set.
+        if 'start' not in options:
+            self.set_periods()
+        combined_options = {**self.options, **options}
+
         """
         This is the really manky bit of code, that needs separating into a helper
         class just for the trending
         """
-
-        # @todo: make work in real time for date ranges, unless specified.
 
         # end of setup
 
@@ -396,6 +473,7 @@ class Royston:
 
         # score each phrase from the trend period compared to it's historic use
         trend_phrases = list(map(lambda phrase: self.get_ngram_trend(phrase, doc_phrases, combined_options), used_phrases))
+
         # filter out Nones
         trend_phrases = list(filter(lambda phrase: phrase != None, trend_phrases))
 
@@ -405,20 +483,32 @@ class Royston:
 
         # remove sub phrases (i.e. "Tour de", compared to "Tour de France")
         trend_phrases = remove_sub_phrases(trend_phrases)
+        # rank results on their score
+        trend_phrases = sorted(trend_phrases, key=lambda phrase: -(phrase['score']))
 
-        # rank results - @todo: needs making nicer
-        #todo: trend_phrases.sort((a, b) => ((b.score === a.score) ? b.phrase.length - a.phrase.length : b.score - a.score)
-        trend_phrases = sorted(trend_phrases, key=lambda phrase: (-(phrase['score']), phrase['phrases']))
-        
+        self.train_doc2vec()
+        # add in the tokens
+        # hash all the doc tokens that we care about
+        def doc2vec_distance(trend_i, trend_j):
+            distances = []
+            for doc_i_id in trend_i['docs']:
+                doc_i_tokens = self.doc2vec_tokens[doc_i_id]
+                for doc_j_id in trend_j['docs']:
+                    doc_j_tokens = self.doc2vec_tokens[doc_j_id]
+                    sim = self.doc2vec_model.similarity_unseen_docs(doc_i_tokens, doc_j_tokens)
+                    distances.append(sim)
+            return 1 - (sum(distances) / len(distances))
+
         # end of trending:search
 
         # start of trending:cluster
 
-        # this bit works to here!!!
-
         # run the clustering - find the phrase that is most similar to so many
         # others (i.e. i, where sum(i) = max( sum() )
         sc = TrendCluster(trend_phrases)
-        trends = sc.cluster()
+
+        # experiment between doc2vec_distance and the old approach.
+        trends = sc.cluster(doc2vec_distance)
+
         # substitute for clustering....
         return self.rank_trends(trends, doc_phrases, self.options['trends_top_n'])

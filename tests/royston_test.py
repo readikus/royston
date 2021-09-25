@@ -3,6 +3,7 @@ from datetime import datetime as dt
 import dateutil.relativedelta
 from royston.royston import Royston
 from royston.royston import is_sub_phrase, remove_sub_phrases
+from royston.util import normalise
 import json
 import os
 import pytz
@@ -81,9 +82,8 @@ class TestRoyston(unittest.TestCase):
         self.assertEqual(remove_sub_phrases([{ 'phrases': ('c',)}, { 'phrases': ('a','b')}]), [{ 'phrases': ('a','b')}, { 'phrases': ('c',) }])
 
     def test_normalise(self):
-        r = Royston()
         # normalise: normalise a string
-        self.assertEqual(r.normalise('My name is Ian'), ['name', 'ian'])
+        self.assertEqual(normalise('My name is Ian'), ['name', 'ian'])
 
     def test_constructor(self):
         r = Royston({ 'min_trend_freq': 5 })
@@ -146,7 +146,7 @@ class TestRoyston(unittest.TestCase):
         # count: test the count returns the correct number
         self.assertEqual(r.count(('random',), find_doc_options), 2)
         self.assertEqual(r.count(('random', 'string'), find_doc_options), 1)
-        self.assertEqual(r.count(('not', 'random', 'string'), find_doc_options), 0)
+        self.assertEqual(r.count(('womble', 'random', 'string'), find_doc_options), 0)
 
         # count: not in date range
         self.assertEqual(r.count(('random'), past_history_options), 0)
@@ -184,10 +184,10 @@ class TestRoyston(unittest.TestCase):
         r.ingest_all(articles)
         trends = r.trending(snapshot_test_time_options)
 
-        self.assertEqual(trends[0]['phrases'], [('enduro', 'world', 'series')])
-        self.assertEqual(trends[0]['score'],  [168.74999999999994])
-        self.assertEqual(trends[1]['phrases'], [('sb150',), ('yeti',)])
-        self.assertEqual(trends[1]['score'], [56.25, 56.25])
+        self.assertEqual(trends[0]['phrases'], [('yeti', 'sb150')])
+        self.assertEqual(trends[0]['score'], [1000000000.0])
+        self.assertEqual(trends[1]['phrases'], [('enduro', 'world', 'series')])
+        self.assertEqual(trends[1]['score'],  [84075.0])
 
     def test_trending_no_data(self):
         r = Royston({})
@@ -200,6 +200,23 @@ class TestRoyston(unittest.TestCase):
         trends = r.trending(snapshot_test_time_options)
 
         self.assertEqual(trends, [])
+
+    def test_get_history_period(self):
+        r = Royston({})
+        [history_start, history_end] = r.get_history_period()
+        delta = (history_end - history_start).days
+        print(delta)
+        print(history_start, history_end)
+        self.assertEqual(delta, 90, msg="delta = " + str(delta))
+
+
+    def test_get_trend_period(self):
+        r = Royston({})
+        [start, end] = r.get_trend_period()
+        print(start, end)
+        delta = (start - end)
+        print('delta', delta.seconds, delta)
+        self.assertEqual(delta.seconds, 86399)#, msg="delta = " + str({ 'delta': delta, 'start': start, 'end': end }))
 
 if __name__ == '__main__':
     unittest.main()

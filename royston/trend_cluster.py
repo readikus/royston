@@ -50,10 +50,8 @@ def closet_match(d, threshold):
             if ((i != j) and (d[i][j] < d[min['i']][min['j']])):
                 min['i'] = i
                 min['j'] = j
-
-    # console.log('d.length', d.length)
     if d[min['i']][min['j']] > threshold:
-        print(str(d[min['i']][min['j']]) + ' is above the threshold, so we won\'t be merging')
+        # print(str(d[min['i']][min['j']]) + ' is above the threshold, so we won\'t be merging')
         return None
 
     return min
@@ -122,9 +120,10 @@ class TrendCluster:
         
         return c
 
-    def cluster(self):
+    # make work with a proper object...
+    def cluster(self, distance_func = distance):
         self.hierachical_cluster(
-            distance,
+            distance_func,
             merge,
             closet_match,
             self.c,

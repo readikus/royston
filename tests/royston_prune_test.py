@@ -31,21 +31,18 @@ no_date_test_doc = { 'id': '123', 'body': 'Another random string' }
 
 now = dt.now()
 
-
-find_doc_options = {
+find_doc_options_incomplete = {
   'start': now - dateutil.relativedelta.relativedelta(months = 1),
   'end': dt.now()
 }
-
-find_doc_options_with_subject = {**find_doc_options, 'subject': 'Polar  Bears'}
-
-past_history_options = {
-  'start': now - dateutil.relativedelta.relativedelta(years = 2), #moment().subtract(2, 'year'),
-  'end': now - dateutil.relativedelta.relativedelta(years = 1) #moment().subtract(1, 'year')
+find_doc_options = {
+  **find_doc_options_incomplete,
+  'history_end': find_doc_options_incomplete['start'],
+  'history_start': find_doc_options_incomplete['start'] - dateutil.relativedelta.relativedelta(days = 30)
 }
 
 class TestRoystonPrune(unittest.TestCase):
-
+    
     def test_prune_low_frequency(self):
 
         r = Royston({})
@@ -55,7 +52,7 @@ class TestRoystonPrune(unittest.TestCase):
         r.prune()
         # count: test the count returns the correct number
         self.assertEqual(r.find_docs(('text',), find_doc_options), [])
-    
+
     def test_prune_old(self):
 
         r = Royston(snapshot_test_time_options)
@@ -63,14 +60,17 @@ class TestRoystonPrune(unittest.TestCase):
             article_data = article_file.read()
         articles = json.loads(article_data)
         r.ingest_all(articles)
-        # set the options to now...
+
+        # set the options to now, with incomplete details
+        with self.assertRaises(Exception) as context:
+            r.set_options(find_doc_options_incomplete)
+        
         r.set_options(find_doc_options)
         # check count before prune (i.e. contains old docs)
-        self.assertEqual(r.find_docs(('enduro',), snapshot_test_time_options), ['12', '15', '16', '17', '18', '19', '20'])
+        self.assertEqual(r.find_docs(('enduro',), snapshot_test_time_options), ['15', '16', '17', '18', '19', '20'])
         r.prune()
         # check the old docs have been pruned out
         self.assertEqual(r.find_docs(('enduro',), snapshot_test_time_options), [])
-
 
 if __name__ == '__main__':
     unittest.main()
