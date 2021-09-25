@@ -26,15 +26,14 @@ pip3 install datetime pytz
 The following script creates some simple documents and adds them to a `royston` (also shipped in the `examples` directory):
 
 ```
-from royston.royston import Royston
+from royston import Royston
 from datetime import datetime as dt
-import pytz
 
 roy = Royston()
 
 # ingest a few documents
-roy.ingest({ 'id': '123', 'body': 'Random text string', 'date': dt.now(pytz.UTC) })
-roy.ingest({ 'id': '456', 'body': 'Antoher random string', 'date': dt.now(pytz.UTC) })
+roy.ingest({ 'id': '123', 'body': 'Random text string', 'date': dt.now() })
+roy.ingest({ 'id': '456', 'body': 'Antoher random string', 'date': dt.now() })
 
 # find the trends - with this example, it won't find anything, as it's only got two stories!
 trends = roy.trending()
@@ -66,7 +65,7 @@ Disclaimer: the following options are currently supported but expected to change
 | `start`         | `datetime` | now - trend_days | The start of the "trend" period (i.e. a day ago) |
 | `end`           | `datetime` | now              | The end of the "trend" period  | 
 | `history_start` | `datetime` | `start`          | Start of the trend period (i.e. `history_days` before `end`) |
-| `history_end`   | `datetime` | `end`            | Start of the trend period (i.e. `history_days` before `end`) |
+| `history_end`   | `datetime` | `end` - history_days | Start of the trend period (i.e. `history_days` before `end`) |
 
 Currently they are calculate in the constructor only, which is stupid, as we want this to run in realtime and adapt each time the `trend` method is called.
 
