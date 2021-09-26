@@ -146,10 +146,10 @@ class Royston:
         [history_start, history_end] = self.get_history_period(trend_days)
 
         self.options = {**self.options, 
-            'start': start,
-            'end': end,
-            'history_start': history_start,
-            'history_end': history_end}
+            'start': self.clean_date(start),
+            'end': self.clean_date(end),
+            'history_start': self.clean_date(history_start),
+            'history_end': self.clean_date(history_end)}
 
     def set_options(self, options):
 
@@ -165,7 +165,7 @@ class Royston:
 
         if 'history_start' not in self.options:
             [history_start, history_end] = self.get_history_period()
-            self.options = {**self.options, **{ 'history_start': history_start, 'history_end': history_end}}
+            self.options = {**self.options, **{ 'history_start': self.clean_date(history_start), 'history_end': self.clean_date(history_end)}}
 
         """
 
@@ -178,10 +178,6 @@ class Royston:
         """
         # clean all dates
         #for date
-        self.options['history_start'] = self.clean_date(self.options['history_start'])
-        self.options['history_end'] = self.clean_date(self.options['history_end'])
-        self.options['start'] = self.clean_date(self.options['start'])
-        self.options['end'] = self.clean_date(self.options['end'])
 
     def ingest_ngram(self, ngram, doc, n):
         """
@@ -196,6 +192,7 @@ class Royston:
         # initialised hash element
         if not ngram in self.ngram_history:
             self.ngram_history[ngram] = { 'occurances': [] }
+
         self.ngram_history[ngram]['occurances'].append({ 'date': doc['date'], 'doc_id': doc['id'] })
 
         # @todo: add this to a queue to look for trends...this.isNGramTrending(ngram, doc);

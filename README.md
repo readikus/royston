@@ -85,7 +85,9 @@ poetry run coverage
 
 This now uses poetry for package management, which can be done with the following command:
 
-```poetry build && poetry publish``
+```
+poetry build && poetry publish
+```
 
 ## Contribute?
 
