@@ -2,11 +2,10 @@ import unittest
 from datetime import datetime as dt
 import dateutil.relativedelta
 from royston.royston import Royston
-from royston.royston import is_sub_phrase, remove_sub_phrases
-from royston.util import normalise
 import json
 import os
 import pytz
+
 # load json file:
 
 # load the test data
@@ -15,61 +14,111 @@ import pytz
 # Move dates to a fixture, as they are reused a lot and getting more involved.
 # hardcode to calculate stories relative to this time period
 snapshot_test_time_options = {
-  'start': dt(2019, 1, 20, 0, 0, 1, tzinfo=pytz.UTC),
-  'end': dt(2019, 1, 21, 23, 59, 5, tzinfo=pytz.UTC)
+    "start": dt(2019, 1, 20, 0, 0, 1, tzinfo=pytz.UTC),
+    "end": dt(2019, 1, 21, 23, 59, 5, tzinfo=pytz.UTC),
 }
 
-old_test_doc_1 = { 'id': '123', 'body': 'Random text string', 'date': dt(2000, 1, 20, 0, 0, 1, tzinfo=pytz.UTC) }
-old_test_doc_2 = { 'id': '456', 'body': 'Antoher random string', 'date': dt(2000, 1, 12, 0, 0, 1, tzinfo=pytz.UTC) }
+old_test_doc_1 = {
+    "id": "123",
+    "body": "Random text string",
+    "date": dt(2000, 1, 20, 0, 0, 1, tzinfo=pytz.UTC),
+}
+old_test_doc_2 = {
+    "id": "456",
+    "body": "Antoher random string",
+    "date": dt(2000, 1, 12, 0, 0, 1, tzinfo=pytz.UTC),
+}
 
 old_valid_time_options = {
-  'start': dt(2000, 1, 20, 0, 0, 1, tzinfo=pytz.UTC),
-  'end': dt(2019, 1, 21, 23, 59, 5, tzinfo=pytz.UTC)
+    "start": dt(2000, 1, 20, 0, 0, 1, tzinfo=pytz.UTC),
+    "end": dt(2019, 1, 21, 23, 59, 5, tzinfo=pytz.UTC),
 }
 
-test_doc = { 'id': '123', 'body': 'Random text string', 'date': dt.now(pytz.UTC) }
-test_doc_2 = { 'id': '456', 'body': 'Antoher random string', 'date': dt.now(pytz.UTC) }
-no_id_test_doc = { 'body': 'Another random string', 'date': dt.now(pytz.UTC) }
-no_date_test_doc = { 'id': '123', 'body': 'Another random string' }
+test_doc = {
+    "id": "123",
+    "body": "Random text string",
+    "date": dt.now(pytz.UTC),
+}
+test_doc_2 = {
+    "id": "456",
+    "body": "Antoher random string",
+    "date": dt.now(pytz.UTC),
+}
+no_id_test_doc = {"body": "Another random string", "date": dt.now(pytz.UTC)}
+no_date_test_doc = {"id": "123", "body": "Another random string"}
 
-subject_test_doc_1 = { 'id': '1', 'body': 'Random text string', 'date': dt.now(pytz.UTC), 'subject': 'wombles' }
-subject_test_doc_2 = { 'id': '2', 'body': 'I tie laces with string', 'date': dt.now(pytz.UTC), 'subject': 'wombles' }
-subject_test_doc_3 = { 'id': '3', 'body': 'Can you string a sentence together', 'date': dt.now(pytz.UTC), 'subject': 'wombles' }
-subject_test_doc_4 = { 'id': '4', 'body': 'My fave theory is string theory', 'date': dt.now(pytz.UTC), 'subject': 'wombles' }
-subject_test_doc_5 = { 'id': '5', 'body': 'I live on a shoe string', 'date': dt.now(pytz.UTC), 'subject': 'wombles' }
+subject_test_doc_1 = {
+    "id": "1",
+    "body": "Random text string",
+    "date": dt.now(pytz.UTC),
+    "subject": "wombles",
+}
+subject_test_doc_2 = {
+    "id": "2",
+    "body": "I tie laces with string",
+    "date": dt.now(pytz.UTC),
+    "subject": "wombles",
+}
+subject_test_doc_3 = {
+    "id": "3",
+    "body": "Can you string a sentence together",
+    "date": dt.now(pytz.UTC),
+    "subject": "wombles",
+}
+subject_test_doc_4 = {
+    "id": "4",
+    "body": "My fave theory is string theory",
+    "date": dt.now(pytz.UTC),
+    "subject": "wombles",
+}
+subject_test_doc_5 = {
+    "id": "5",
+    "body": "I live on a shoe string",
+    "date": dt.now(pytz.UTC),
+    "subject": "wombles",
+}
 
-now = dt.now(pytz.UTC   )
+now = dt.now(pytz.UTC)
 
 used_phrases = [
-  ('antoher',),
-  ('antoher', 'random'),
-  ('antoher','random','string'),
-  ('random',),
-  ('random','string'),
-  ('random','text'),
-  ('random','text','string'),
-  ('string',),
-  ('text',),
-  ('text','string')]
+    ("antoher",),
+    ("antoher", "random"),
+    ("antoher", "random", "string"),
+    ("random",),
+    ("random", "string"),
+    ("random", "text"),
+    ("random", "text", "string"),
+    ("string",),
+    ("text",),
+    ("text", "string"),
+]
 
 find_doc_options = {
-  'start': now - dateutil.relativedelta.relativedelta(months = 1),
-  'end': dt.now(pytz.UTC)
+    "start": now - dateutil.relativedelta.relativedelta(months=1),
+    "end": dt.now(pytz.UTC),
 }
 
-find_doc_options_with_subject = {**find_doc_options, 'subject': 'wombles'}
+find_doc_options_with_subject = {**find_doc_options, "subject": "wombles"}
 
 past_history_options = {
-  'start': now - dateutil.relativedelta.relativedelta(years = 2), #moment().subtract(2, 'year'),
-  'end': now - dateutil.relativedelta.relativedelta(years = 1) #moment().subtract(1, 'year')
+    "start": now
+    - dateutil.relativedelta.relativedelta(
+        years=2
+    ),  # moment().subtract(2, 'year'),
+    "end": now
+    - dateutil.relativedelta.relativedelta(
+        years=1
+    ),  # moment().subtract(1, 'year')
 }
 
-class TestRoyston(unittest.TestCase):
 
+class TestRoyston(unittest.TestCase):
     def test_trending_correct_phrases(self):
         # create a model from training data
         r = Royston(snapshot_test_time_options)
-        with open(os.path.dirname(__file__) + '/test-articles-small.json', 'r') as article_file:
+        with open(
+            os.path.dirname(__file__) + "/test-articles-small.json", "r"
+        ) as article_file:
             article_data = article_file.read()
         articles = json.loads(article_data)
         r.ingest_all(articles)
@@ -79,10 +128,11 @@ class TestRoyston(unittest.TestCase):
 
         trends = r.trending(snapshot_test_time_options)
 
-        self.assertEqual(trends[0]['phrases'], [('yeti', 'sb150')])
-        self.assertEqual(trends[0]['score'], [1000000000.0])
-        self.assertEqual(trends[1]['phrases'], [('enduro', 'world', 'series')])
-        self.assertEqual(trends[1]['score'],  [84075.0])
+        self.assertEqual(trends[0]["phrases"], [("yeti", "sb150")])
+        self.assertEqual(trends[0]["score"], [1000000000.0])
+        self.assertEqual(trends[1]["phrases"], [("enduro", "world", "series")])
+        self.assertEqual(trends[1]["score"], [84075.0])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -3,3 +3,4 @@ nltk
 dateparser
 pytz
 gensim
+dateutil
