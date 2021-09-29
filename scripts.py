@@ -4,7 +4,7 @@ def test():
     """
     Run all unittests
     """
-    subprocess.call('coverage run -m unittest discover -p "*_test.py"', shell=True)
+    subprocess.call('pytest --cov=royston tests/', shell=True)
 
 def coverage():
     """

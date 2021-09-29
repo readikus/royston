@@ -1,10 +1,13 @@
-import unittest
 from datetime import datetime as dt
-import dateutil.relativedelta
-from royston.royston import Royston
 import json
 import os
+import unittest
+
+import dateutil.relativedelta
+import pytest
 import pytz
+
+from royston.royston import Royston
 
 # load json file:
 
@@ -65,10 +68,10 @@ class TestRoystonPrune(unittest.TestCase):
         r = Royston({})
         r.ingest_all([test_doc, test_doc_2])
 
-        self.assertEqual(r.find_docs(("text",), find_doc_options), ["123"])
+        assert r.find_docs(("text",), find_doc_options) == ["123"]
         r.prune()
         # count: test the count returns the correct number
-        self.assertEqual(r.find_docs(("text",), find_doc_options), [])
+        assert r.find_docs(("text",), find_doc_options) == []
 
     def test_prune_old(self):
 
@@ -81,21 +84,23 @@ class TestRoystonPrune(unittest.TestCase):
         r.ingest_all(articles)
 
         # set the options to now, with incomplete details
-        with self.assertRaises(Exception) as context:
+        with pytest.raises(Exception):
             r.set_options(find_doc_options_incomplete)
 
         r.set_options(find_doc_options)
         print(r.options)
         # check count before prune (i.e. contains old docs)
-        self.assertEqual(
-            r.find_docs(("enduro",), snapshot_test_time_options),
-            ["15", "16", "17", "18", "19", "20"],
-        )
+        assert r.find_docs(("enduro",), snapshot_test_time_options) == [
+            "15",
+            "16",
+            "17",
+            "18",
+            "19",
+            "20",
+        ]
         r.prune()
         # check the old docs have been pruned out
-        self.assertEqual(
-            r.find_docs(("enduro",), snapshot_test_time_options), []
-        )
+        assert r.find_docs(("enduro",), snapshot_test_time_options) == []
 
 
 if __name__ == "__main__":

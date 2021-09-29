@@ -1,10 +1,12 @@
-import unittest
 from datetime import datetime as dt
-import dateutil.relativedelta
-from royston.royston import Royston
 import json
 import os
+import unittest
+
+import dateutil.relativedelta
 import pytz
+
+from royston.royston import Royston
 
 # load json file:
 
@@ -128,10 +130,10 @@ class TestRoyston(unittest.TestCase):
 
         trends = r.trending(snapshot_test_time_options)
 
-        self.assertEqual(trends[0]["phrases"], [("yeti", "sb150")])
-        self.assertEqual(trends[0]["score"], [1000000000.0])
-        self.assertEqual(trends[1]["phrases"], [("enduro", "world", "series")])
-        self.assertEqual(trends[1]["score"], [84075.0])
+        assert trends[0]["phrases"] == [("yeti", "sb150")]
+        assert trends[0]["score"] == [1000000000.0]
+        assert trends[1]["phrases"] == [("enduro", "world", "series")]
+        assert trends[1]["score"] == [84075.0]
 
 
 if __name__ == "__main__":
