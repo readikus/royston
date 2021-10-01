@@ -13,6 +13,7 @@ from royston.util import normalise
 # load json file:
 
 # load the test data
+now = dt.now(pytz.UTC)
 
 
 # hardcode to calculate stories relative to this time period
@@ -40,13 +41,24 @@ old_valid_time_options = {
 test_doc = {
     "id": "123",
     "body": "Random text string",
-    "date": dt.now(pytz.UTC),
+    "date": now,
 }
 test_doc_2 = {
     "id": "456",
     "body": "Antoher random string",
-    "date": dt.now(pytz.UTC),
+    "date": now,
 }
+history_doc_1 = {
+    "id": "7",
+    "body": "Some random old string",
+    "date": now - dateutil.relativedelta.relativedelta(months=1)
+}
+history_doc_2 = {
+    "id": "8",
+    "body": "Another really old random string",
+    "date": now - dateutil.relativedelta.relativedelta(months=2)
+}
+
 no_id_test_doc = {"body": "Another random string", "date": dt.now(pytz.UTC)}
 no_date_test_doc = {"id": "123", "body": "Another random string"}
 
@@ -81,7 +93,6 @@ subject_test_doc_5 = {
     "subject": "wombles",
 }
 
-now = dt.now(pytz.UTC)
 
 used_phrases = [
     ("antoher",),
@@ -97,7 +108,7 @@ used_phrases = [
 ]
 
 find_doc_options = {
-    "start": now - dateutil.relativedelta.relativedelta(months=1),
+    "start": now - dateutil.relativedelta.relativedelta(day=1),
     "end": dt.now(pytz.UTC),
 }
 
@@ -116,6 +127,7 @@ past_history_options = {
 
 
 class TestRoyston(unittest.TestCase):
+
     def test_is_sub_phrase(self):
         assert is_sub_phrase(("a",), ("a", "b")) is True
         assert is_sub_phrase(("a", "b"), ("a",)) is True
@@ -268,6 +280,21 @@ class TestRoyston(unittest.TestCase):
         # count: test the count returns the correct number
         assert r.find_docs(("random",), find_doc_options) == ["123", "456"]
 
+    def test_count_history(self):
+
+        r = Royston({})
+        r.ingest_all([history_doc_1, history_doc_2])
+
+        # count: test the count returns the correct number
+        assert r.count_history(("random",)) == 2
+
+    def test_count_trend_period(self):
+
+        r = Royston(find_doc_options)
+        r.ingest_all([history_doc_1, history_doc_2, test_doc, test_doc_2])
+
+        assert r.count_trend_period(("random",)) == 2
+
     def test_find_docs_with_subject(self):
 
         r = Royston({})
@@ -322,6 +349,11 @@ class TestRoyston(unittest.TestCase):
         r.ingest_all(articles)
         trends = r.trending(snapshot_test_time_options)
 
+        assert trends == []
+
+    def test_no_start_option_set(self):
+        r = Royston({})
+        trends = r.trending()
         assert trends == []
 
     def test_get_history_period(self):

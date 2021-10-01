@@ -8,11 +8,6 @@ import pytz
 
 from royston.royston import Royston
 
-# load json file:
-
-# load the test data
-
-
 # Move dates to a fixture, as they are reused a lot and getting more involved.
 # hardcode to calculate stories relative to this time period
 snapshot_test_time_options = {
