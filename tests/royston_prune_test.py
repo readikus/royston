@@ -1,13 +1,11 @@
+from royston.royston import Royston
 from datetime import datetime as dt
 import json
 import os
 import unittest
-
 import dateutil.relativedelta
 import pytest
 import pytz
-
-from royston.royston import Royston
 
 # load json file:
 
@@ -88,7 +86,6 @@ class TestRoystonPrune(unittest.TestCase):
             r.set_options(find_doc_options_incomplete)
 
         r.set_options(find_doc_options)
-        print(r.options)
         # check count before prune (i.e. contains old docs)
         assert r.find_docs(("enduro",), snapshot_test_time_options) == [
             "15",

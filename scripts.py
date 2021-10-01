@@ -1,14 +1,15 @@
 import subprocess
 
+
 def test():
     """
     Run all unittests
     """
-    subprocess.call('pytest --cov=royston tests/', shell=True)
+    subprocess.call('pytest', shell=True)
+
 
 def coverage():
     """
     Run coverage report
     """
-    subprocess.call('coverage report -m  royston/royston.py', shell=True)
-
+    subprocess.call('pytest --cov=royston --cov-report term-missing tests/', shell=True)
