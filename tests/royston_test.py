@@ -1,12 +1,14 @@
-import unittest
 from datetime import datetime as dt
-import dateutil.relativedelta
-from royston.royston import Royston
-from royston.royston import is_sub_phrase, remove_sub_phrases
-from royston.util import normalise
 import json
 import os
+import unittest
+
+import dateutil.relativedelta
+import pytest
 import pytz
+
+from royston.royston import Royston, is_sub_phrase, remove_sub_phrases
+from royston.util import normalise
 
 # load json file:
 
@@ -115,41 +117,17 @@ past_history_options = {
 
 class TestRoyston(unittest.TestCase):
     def test_is_sub_phrase(self):
-        self.assertEqual(is_sub_phrase(("a",), ("a", "b")), True)
-        self.assertEqual(is_sub_phrase(("a", "b"), ("a",)), True)
-        self.assertEqual(is_sub_phrase(("c",), ("a", "b")), False)
-        self.assertEqual(is_sub_phrase(("c", "b"), ("a", "b", "c")), False)
-        self.assertEqual(
-            is_sub_phrase(("b", "d"), ("a", "b", "c", "d")), False
-        )
-        self.assertEqual(is_sub_phrase((), ("a", "b")), False)
-        self.assertEqual(is_sub_phrase(None, ("a", "b")), False)
-        self.assertEqual(is_sub_phrase(None, None), False)
+        assert is_sub_phrase(("a",), ("a", "b")) is True
+        assert is_sub_phrase(("a", "b"), ("a",)) is True
+        assert is_sub_phrase(("c",), ("a", "b")) is False
+        assert is_sub_phrase(("c", "b"), ("a", "b", "c")) is False
+        assert is_sub_phrase(("b", "d"), ("a", "b", "c", "d")) is False
+        assert is_sub_phrase((), ("a", "b")) is False
+        assert is_sub_phrase(None, ("a", "b")) is False
+        assert is_sub_phrase(None, None) is False
 
     def test_remove_sub_phrases(self):
-        self.assertEqual(
-            remove_sub_phrases(
-                [
-                    {
-                        "phrases": ("enduro", "world"),
-                        "score": 562.5,
-                        "history_range_count": 1,
-                        "trend_range_count": 5,
-                        "history_day_average": 0.017777777777777778,
-                        "history_trend_range_ratio": 281.25,
-                        "docs": ["16", "17", "18", "19", "20"],
-                    },
-                    {
-                        "phrases": ("world",),
-                        "score": 281.25,
-                        "history_range_count": 1,
-                        "trend_range_count": 5,
-                        "history_day_average": 0.017777777777777778,
-                        "history_trend_range_ratio": 281.25,
-                        "docs": ["16", "17", "18", "19", "20"],
-                    },
-                ]
-            ),
+        assert remove_sub_phrases(
             [
                 {
                     "phrases": ("enduro", "world"),
@@ -159,71 +137,88 @@ class TestRoyston(unittest.TestCase):
                     "history_day_average": 0.017777777777777778,
                     "history_trend_range_ratio": 281.25,
                     "docs": ["16", "17", "18", "19", "20"],
-                }
-            ],
-        )
-        self.assertEqual(
-            remove_sub_phrases([{"phrases": ("a",)}, {"phrases": ("a", "b")}]),
-            [{"phrases": ("a", "b")}],
-        )
-        self.assertEqual(
-            remove_sub_phrases([{"phrases": ("a", "b")}, {"phrases": ("a",)}]),
-            [{"phrases": ("a", "b")}],
-        )
-        self.assertEqual(
-            remove_sub_phrases([{"phrases": ("c",)}, {"phrases": ("a", "b")}]),
-            [{"phrases": ("a", "b")}, {"phrases": ("c",)}],
-        )
+                },
+                {
+                    "phrases": ("world",),
+                    "score": 281.25,
+                    "history_range_count": 1,
+                    "trend_range_count": 5,
+                    "history_day_average": 0.017777777777777778,
+                    "history_trend_range_ratio": 281.25,
+                    "docs": ["16", "17", "18", "19", "20"],
+                },
+            ]
+        ) == [
+            {
+                "phrases": ("enduro", "world"),
+                "score": 562.5,
+                "history_range_count": 1,
+                "trend_range_count": 5,
+                "history_day_average": 0.017777777777777778,
+                "history_trend_range_ratio": 281.25,
+                "docs": ["16", "17", "18", "19", "20"],
+            }
+        ]
+
+        assert remove_sub_phrases(
+            [{"phrases": ("a",)}, {"phrases": ("a", "b")}]
+        ) == [{"phrases": ("a", "b")}]
+        assert remove_sub_phrases(
+            [{"phrases": ("a", "b")}, {"phrases": ("a",)}]
+        ) == [{"phrases": ("a", "b")}]
+        assert remove_sub_phrases(
+            [{"phrases": ("c",)}, {"phrases": ("a", "b")}]
+        ) == [{"phrases": ("a", "b")}, {"phrases": ("c",)}]
 
     def test_normalise(self):
         # normalise: normalise a string
-        self.assertEqual(normalise("My name is Ian"), ["name", "ian"])
+        assert normalise("My name is Ian") == ["name", "ian"]
 
     def test_constructor(self):
         r = Royston({"min_trend_freq": 5})
-        self.assertEqual(r.options["min_trend_freq"], 5)
-        self.assertEqual(r.options["history_days"], 90)
+        assert r.options["min_trend_freq"] == 5
+        assert r.options["history_days"] == 90
 
     def test_ingest_no_date(self):
         r = Royston({"min_trend_freq": 5})
-        with self.assertRaises(Exception) as context:
+        with pytest.raises(Exception):
             r.ingest(no_date_test_doc)
 
     def test_ingest_no_id(self):
         r = Royston({"min_trend_freq": 5})
-        with self.assertRaises(Exception) as context:
+        with pytest.raises(Exception):
             r.ingest(no_id_test_doc)
 
     def test_clean_date(self):
         r = Royston({})
-        self.assertEqual(
-            r.clean_date("2020-01-23 01:02:03"),
-            dt(2020, 1, 23, 1, 2, 3, tzinfo=pytz.UTC),
+        assert r.clean_date("2020-01-23 01:02:03") == dt(
+            2020, 1, 23, 1, 2, 3, tzinfo=pytz.UTC
         )
 
     def test_ingest_the_same_doc_twice(self):
         r = Royston({"min_trend_freq": 5})
-        self.assertEqual(
-            r.docs, {}
+        assert (
+            r.docs == {}
         )  # maybe wrong syntax, as needs to be based on keys??
 
         r.ingest(test_doc)
-        self.assertEqual(
-            r.docs, {test_doc["id"]: test_doc}
-        )  # maybe wrong syntax, as needs to be based on keys??
+        assert r.docs == {
+            test_doc["id"]: test_doc
+        }  # maybe wrong syntax, as needs to be based on keys??
 
-        with self.assertRaises(Exception) as context:
+        with pytest.raises(Exception):
             r.ingest(test_doc)
 
     def test_ingest_all(self):
         # Test ingest_all ingests multiple documents
 
         r = Royston({"min_trend_freq": 5})
-        self.assertEqual(r.docs, {})
+        assert r.docs == {}
         r.ingest_all([test_doc, test_doc_2])
-        self.assertEqual(
-            r.docs, {test_doc["id"]: test_doc, test_doc_2["id"]: test_doc_2}
-        )
+        assert r.docs == {
+            test_doc["id"]: test_doc,
+            test_doc_2["id"]: test_doc_2,
+        }
 
     def test_used_phrases(self):
         # Test used_phrases returns the correct phrases
@@ -236,8 +231,7 @@ class TestRoyston(unittest.TestCase):
         computed_phrases = sorted(
             computed_phrases, key=lambda ngram: (ngram, len(ngram))
         )
-        self.assertEqual(computed_phrases, used_phrases)
-        self.assertEqual(computed_phrases, used_phrases)
+        assert computed_phrases == used_phrases
 
         computed_phrases = r.used_phrases(
             r.clean_date(find_doc_options["start"]),
@@ -246,11 +240,11 @@ class TestRoyston(unittest.TestCase):
 
         # check the date filter is working to ignore stuff out of range
         r.used_phrases(find_doc_options["start"], find_doc_options["end"])
-        self.assertEqual(
-            [],
+        assert (
             r.used_phrases(
                 past_history_options["start"], past_history_options["end"]
-            ),
+            )
+            == []
         )
 
     def test_count(self):
@@ -259,14 +253,12 @@ class TestRoyston(unittest.TestCase):
         r.ingest_all([test_doc, test_doc_2])
 
         # count: test the count returns the correct number
-        self.assertEqual(r.count(("random",), find_doc_options), 2)
-        self.assertEqual(r.count(("random", "string"), find_doc_options), 1)
-        self.assertEqual(
-            r.count(("womble", "random", "string"), find_doc_options), 0
-        )
+        assert r.count(("random",), find_doc_options) == 2
+        assert r.count(("random", "string"), find_doc_options) == 1
+        assert r.count(("womble", "random", "string"), find_doc_options) == 0
 
         # count: not in date range
-        self.assertEqual(r.count(("random"), past_history_options), 0)
+        assert r.count(("random"), past_history_options) == 0
 
     def test_find_docs(self):
 
@@ -274,9 +266,7 @@ class TestRoyston(unittest.TestCase):
         r.ingest_all([test_doc, test_doc_2])
 
         # count: test the count returns the correct number
-        self.assertEqual(
-            r.find_docs(("random",), find_doc_options), ["123", "456"]
-        )
+        assert r.find_docs(("random",), find_doc_options) == ["123", "456"]
 
     def test_find_docs_with_subject(self):
 
@@ -297,8 +287,8 @@ class TestRoyston(unittest.TestCase):
         all_docs = r.find_docs(("string",), find_doc_options)
         subject_docs = r.find_docs(("string",), find_doc_options_with_subject)
 
-        self.assertEqual(len(all_docs), 7)
-        self.assertEqual(len(subject_docs), 5)
+        assert len(all_docs) == 7
+        assert len(subject_docs) == 5
 
     def test_trending_correct_phrases(self):
         r = Royston(snapshot_test_time_options)
@@ -315,10 +305,10 @@ class TestRoyston(unittest.TestCase):
         r.ingest_all(articles)
         trends = r.trending(snapshot_test_time_options)
 
-        self.assertEqual(trends[0]["phrases"], [("yeti", "sb150")])
-        self.assertEqual(trends[0]["score"], [1000000000.0])
-        self.assertEqual(trends[1]["phrases"], [("enduro", "world", "series")])
-        self.assertEqual(trends[1]["score"], [84075.0])
+        assert trends[0]["phrases"] == [("yeti", "sb150")]
+        assert trends[0]["score"] == [1000000000.0]
+        assert trends[1]["phrases"] == [("enduro", "world", "series")]
+        assert trends[1]["score"] == [84075.0]
 
     def test_trending_no_data(self):
         r = Royston({})
@@ -332,23 +322,19 @@ class TestRoyston(unittest.TestCase):
         r.ingest_all(articles)
         trends = r.trending(snapshot_test_time_options)
 
-        self.assertEqual(trends, [])
+        assert trends == []
 
     def test_get_history_period(self):
         r = Royston({})
         [history_start, history_end] = r.get_history_period()
         delta = (history_end - history_start).days
-        print(delta)
-        print(history_start, history_end)
-        self.assertEqual(delta, 90, msg="delta = " + str(delta))
+        assert delta == 90, f"delta = {str(delta)}"
 
     def test_get_trend_period(self):
         r = Royston({})
         [start, end] = r.get_trend_period()
-        print(start, end)
         delta = start - end
-        print("delta", delta.seconds, delta)
-        self.assertEqual(delta.seconds, 86399)
+        assert delta.seconds == 86399
 
 
 if __name__ == "__main__":
