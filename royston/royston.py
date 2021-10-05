@@ -395,6 +395,7 @@ class Royston:
         return len(self.find_docs(ngram, options))
 
     def count_history(self, ngram):
+
         return self.count(
             ngram,
             {
@@ -407,44 +408,6 @@ class Royston:
         return self.count(
             ngram, {"start": self.options["start"], "end": self.options["end"]}
         )
-
-    # MERGE THIS WITH GET_NGRAM_TREND, BUT I JUST CAN'T BE FUCKED RIGHT NOW
-    def get_ngram_stats(self, ngram, combined_options):
-        trend_docs = self.find_docs(ngram, combined_options)
-        trend_range_count = len(trend_docs)
-        history_range_count = self.count(
-            ngram,
-            {
-                "start": self.options["history_start"],
-                "end": self.options["history_end"],
-            },
-        )
-        history_day_average = (
-            self.options["history_frequency_tolerance"]
-            * history_range_count
-            / self.options["history_days"]
-        )
-
-        trend_day_average = trend_range_count / combined_options["trend_days"]
-        history_trend_range_ratio = trend_day_average / (
-            0.000001 if history_range_count == 0 else history_day_average
-        )
-
-        change = trend_day_average - history_day_average
-        change_percent = (
-            change
-            / (0.000001 if history_range_count == 0 else history_day_average)
-        ) * 100
-
-        return {
-            "trend_range_count": trend_range_count,
-            "history_range_count": history_range_count,
-            "history_day_average": history_day_average,
-            "trend_day_average": trend_day_average,
-            "history_trend_range_ratio": history_trend_range_ratio,
-            "change_percent": change_percent,
-            "change": change,
-        }
 
     #  change start and end time to be part of options early on...
     def get_ngram_trend(self, ngram, doc_phrases, combined_options):

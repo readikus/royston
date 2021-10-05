@@ -1,7 +1,5 @@
-import unittest
 import pytest
-
-from royston.royston import Royston
+import unittest
 
 
 class TestRoystonPrune:

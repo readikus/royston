@@ -8,6 +8,7 @@ from royston.util import normalise
 
 
 class TestRoyston:
+
     def test_is_sub_phrase(self):
         assert is_sub_phrase(("a",), ("a", "b")) is True
         assert is_sub_phrase(("a", "b"), ("a",)) is True
@@ -230,6 +231,11 @@ class TestRoyston:
         r.ingest_all(data_small)
         trends = r.trending(snapshot_options)
 
+        assert trends == []
+
+    def test_no_start_option_set(self):
+        r = Royston({})
+        trends = r.trending()
         assert trends == []
 
     def test_get_history_period(self):
