@@ -140,7 +140,7 @@ def subject_docs():
 
 
 @pytest.fixture
-def small_article_data():
+def data_small():
 
     with open(
         os.path.dirname(__file__) + "/test-articles-small.json", "r"
@@ -151,7 +151,7 @@ def small_article_data():
 
 
 @pytest.fixture
-def snapshot_test_time_options():
+def snapshot_options():
     return {
         "start": dt(2019, 1, 20, 0, 0, 1, tzinfo=pytz.UTC),
         "end": dt(2019, 1, 21, 23, 59, 5, tzinfo=pytz.UTC),
@@ -170,7 +170,7 @@ default_history_options = {
 
 
 @pytest.fixture
-def find_doc_options():
+def options():
     return default_options
 
 
@@ -180,16 +180,8 @@ def all_options():
 
 
 @pytest.fixture
-def find_doc_options_with_subject():
+def options_with_subject():
     return {**default_options, "subject": "wombles"}
-
-
-@pytest.fixture
-def find_doc_options_incomplete():
-    return {
-        "start": now - delta(months=1),
-        "end": dt.now(),
-    }
 
 
 @pytest.fixture

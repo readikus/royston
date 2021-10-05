@@ -17,22 +17,22 @@ class TestRoystonPrune:
 
     def test_prune_old(
         self,
-        snapshot_test_time_options,
-        small_article_data,
-        find_doc_options_incomplete,
+        snapshot_options,
+        data_small,
+        options,
         all_options,
     ):
 
-        r = Royston(snapshot_test_time_options)
-        r.ingest_all(small_article_data)
+        r = Royston(snapshot_options)
+        r.ingest_all(data_small)
 
         # set the options to now, with incomplete details
         with pytest.raises(Exception):
-            r.set_options(find_doc_options_incomplete)
+            r.set_options(options)
 
         r.set_options(all_options)
         # check count before prune (i.e. contains old docs)
-        assert r.find_docs(("enduro",), snapshot_test_time_options) == [
+        assert r.find_docs(("enduro",), snapshot_options) == [
             "15",
             "16",
             "17",
@@ -42,7 +42,7 @@ class TestRoystonPrune:
         ]
         r.prune()
         # check the old docs have been pruned out
-        assert r.find_docs(("enduro",), snapshot_test_time_options) == []
+        assert r.find_docs(("enduro",), snapshot_options) == []
 
 
 if __name__ == "__main__":
