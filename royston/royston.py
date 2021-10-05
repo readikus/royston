@@ -451,7 +451,9 @@ class Royston:
         """
         Does the trend analysis related to an ngram.
 
-        this needs a proper name and explaination
+        this needs a proper name and explaination.
+
+        @todo: decouple doc_phrases?
         """
 
         # score if the phrase has trended in the last 24 hours
@@ -539,7 +541,14 @@ class Royston:
     the trending this way.
     """
 
-    def trending(self, options={}):
+    def trend_phrases(self, options):
+        """
+        Finds the phrases that have been trending.
+
+        This method does not consider dealing with related phrases and
+        overlapping documents.
+
+        """
 
         # if times ranges aren't specified, calcuate and stash here....
         # brittle - if 'start' is set, assumes all 4 dates are set.
@@ -582,6 +591,17 @@ class Royston:
             filter(lambda phrase: phrase is not None, trend_phrases)
         )
 
+        # rank results on their score
+        trend_phrases = sorted(
+            trend_phrases,
+            key=lambda phrase: (-phrase["score"], phrase["phrases"]),
+        )
+
+        return [trend_phrases, doc_phrases]
+
+    def trending(self, options={}):
+
+        [trend_phrases, doc_phrases] = self.trend_phrases(options)
         # map to ngram trends
         if trend_phrases is None or len(trend_phrases) == 0:
             return []
@@ -590,7 +610,8 @@ class Royston:
         trend_phrases = remove_sub_phrases(trend_phrases)
         # rank results on their score
         trend_phrases = sorted(
-            trend_phrases, key=lambda phrase: -(phrase["score"])
+            trend_phrases,
+            key=lambda phrase: (-phrase["score"], phrase["phrases"]),
         )
 
         self.train_doc2vec()

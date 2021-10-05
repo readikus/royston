@@ -1,121 +1,13 @@
 from datetime import datetime as dt
-import json
-import os
 import unittest
-
-import dateutil.relativedelta
 import pytest
 import pytz
 
 from royston.royston import Royston, is_sub_phrase, remove_sub_phrases
 from royston.util import normalise
 
-# load json file:
 
-# load the test data
-
-
-# hardcode to calculate stories relative to this time period
-snapshot_test_time_options = {
-    "start": dt(2019, 1, 20, 0, 0, 1, tzinfo=pytz.UTC),
-    "end": dt(2019, 1, 21, 23, 59, 5, tzinfo=pytz.UTC),
-}
-
-old_test_doc_1 = {
-    "id": "123",
-    "body": "Random text string",
-    "date": dt(2000, 1, 20, 0, 0, 1, tzinfo=pytz.UTC),
-}
-old_test_doc_2 = {
-    "id": "456",
-    "body": "Antoher random string",
-    "date": dt(2000, 1, 12, 0, 0, 1, tzinfo=pytz.UTC),
-}
-
-old_valid_time_options = {
-    "start": dt(2000, 1, 20, 0, 0, 1, tzinfo=pytz.UTC),
-    "end": dt(2019, 1, 21, 23, 59, 5, tzinfo=pytz.UTC),
-}
-
-test_doc = {
-    "id": "123",
-    "body": "Random text string",
-    "date": dt.now(pytz.UTC),
-}
-test_doc_2 = {
-    "id": "456",
-    "body": "Antoher random string",
-    "date": dt.now(pytz.UTC),
-}
-no_id_test_doc = {"body": "Another random string", "date": dt.now(pytz.UTC)}
-no_date_test_doc = {"id": "123", "body": "Another random string"}
-
-subject_test_doc_1 = {
-    "id": "1",
-    "body": "Random text string",
-    "date": dt.now(pytz.UTC),
-    "subject": "wombles",
-}
-subject_test_doc_2 = {
-    "id": "2",
-    "body": "I tie laces with string",
-    "date": dt.now(pytz.UTC),
-    "subject": "wombles",
-}
-subject_test_doc_3 = {
-    "id": "3",
-    "body": "Can you string a sentence together",
-    "date": dt.now(pytz.UTC),
-    "subject": "wombles",
-}
-subject_test_doc_4 = {
-    "id": "4",
-    "body": "My fave theory is string theory",
-    "date": dt.now(pytz.UTC),
-    "subject": "wombles",
-}
-subject_test_doc_5 = {
-    "id": "5",
-    "body": "I live on a shoe string",
-    "date": dt.now(pytz.UTC),
-    "subject": "wombles",
-}
-
-now = dt.now(pytz.UTC)
-
-used_phrases = [
-    ("antoher",),
-    ("antoher", "random"),
-    ("antoher", "random", "string"),
-    ("random",),
-    ("random", "string"),
-    ("random", "text"),
-    ("random", "text", "string"),
-    ("string",),
-    ("text",),
-    ("text", "string"),
-]
-
-find_doc_options = {
-    "start": now - dateutil.relativedelta.relativedelta(months=1),
-    "end": dt.now(pytz.UTC),
-}
-
-find_doc_options_with_subject = {**find_doc_options, "subject": "wombles"}
-
-past_history_options = {
-    "start": now
-    - dateutil.relativedelta.relativedelta(
-        years=2
-    ),  # moment().subtract(2, 'year'),
-    "end": now
-    - dateutil.relativedelta.relativedelta(
-        years=1
-    ),  # moment().subtract(1, 'year')
-}
-
-
-class TestRoyston(unittest.TestCase):
+class TestRoyston:
     def test_is_sub_phrase(self):
         assert is_sub_phrase(("a",), ("a", "b")) is True
         assert is_sub_phrase(("a", "b"), ("a",)) is True
@@ -179,12 +71,12 @@ class TestRoyston(unittest.TestCase):
         assert r.options["min_trend_freq"] == 5
         assert r.options["history_days"] == 90
 
-    def test_ingest_no_date(self):
+    def test_ingest_no_date(self, no_date_test_doc):
         r = Royston({"min_trend_freq": 5})
         with pytest.raises(Exception):
             r.ingest(no_date_test_doc)
 
-    def test_ingest_no_id(self):
+    def test_ingest_no_id(self, no_id_test_doc):
         r = Royston({"min_trend_freq": 5})
         with pytest.raises(Exception):
             r.ingest(no_id_test_doc)
@@ -195,12 +87,9 @@ class TestRoyston(unittest.TestCase):
             2020, 1, 23, 1, 2, 3, tzinfo=pytz.UTC
         )
 
-    def test_ingest_the_same_doc_twice(self):
+    def test_ingest_the_same_doc_twice(self, test_doc):
         r = Royston({"min_trend_freq": 5})
-        assert (
-            r.docs == {}
-        )  # maybe wrong syntax, as needs to be based on keys??
-
+        assert r.docs == {}
         r.ingest(test_doc)
         assert r.docs == {
             test_doc["id"]: test_doc
@@ -209,7 +98,7 @@ class TestRoyston(unittest.TestCase):
         with pytest.raises(Exception):
             r.ingest(test_doc)
 
-    def test_ingest_all(self):
+    def test_ingest_all(self, test_doc, test_doc_2):
         # Test ingest_all ingests multiple documents
 
         r = Royston({"min_trend_freq": 5})
@@ -220,7 +109,14 @@ class TestRoyston(unittest.TestCase):
             test_doc_2["id"]: test_doc_2,
         }
 
-    def test_used_phrases(self):
+    def test_used_phrases(
+        self,
+        test_doc,
+        test_doc_2,
+        used_phrases,
+        find_doc_options,
+        past_history_options,
+    ):
         # Test used_phrases returns the correct phrases
         r = Royston({"min_trend_freq": 5})
         r.ingest_all([test_doc, test_doc_2])
@@ -247,7 +143,9 @@ class TestRoyston(unittest.TestCase):
             == []
         )
 
-    def test_count(self):
+    def test_count(
+        self, test_doc, test_doc_2, find_doc_options, past_history_options
+    ):
 
         r = Royston({})
         r.ingest_all([test_doc, test_doc_2])
@@ -260,7 +158,7 @@ class TestRoyston(unittest.TestCase):
         # count: not in date range
         assert r.count(("random"), past_history_options) == 0
 
-    def test_find_docs(self):
+    def test_find_docs(self, test_doc, test_doc_2, find_doc_options):
 
         r = Royston({})
         r.ingest_all([test_doc, test_doc_2])
@@ -268,20 +166,17 @@ class TestRoyston(unittest.TestCase):
         # count: test the count returns the correct number
         assert r.find_docs(("random",), find_doc_options) == ["123", "456"]
 
-    def test_find_docs_with_subject(self):
+    def test_find_docs_with_subject(
+        self,
+        test_doc,
+        test_doc_2,
+        subject_docs,
+        find_doc_options,
+        find_doc_options_with_subject,
+    ):
 
         r = Royston({})
-        r.ingest_all(
-            [
-                test_doc,
-                test_doc_2,
-                subject_test_doc_1,
-                subject_test_doc_2,
-                subject_test_doc_3,
-                subject_test_doc_4,
-                subject_test_doc_5,
-            ]
-        )
+        r.ingest_all([test_doc, test_doc_2] + subject_docs)
 
         # count: test the count returns the correct number
         all_docs = r.find_docs(("string",), find_doc_options)
@@ -290,19 +185,38 @@ class TestRoyston(unittest.TestCase):
         assert len(all_docs) == 7
         assert len(subject_docs) == 5
 
-    def test_trending_correct_phrases(self):
+    def test_trend_phrases_correct_phrases(
+        self, small_article_data, snapshot_test_time_options
+    ):
+
         r = Royston(snapshot_test_time_options)
+        r.ingest_all(small_article_data)
+        [trend_phrases, doc_phrases] = r.trend_phrases(
+            snapshot_test_time_options
+        )
 
-        with open(
-            os.path.dirname(__file__) + "/test-articles-small.json", "r"
-        ) as article_file:
-            article_data = article_file.read()
+        assert trend_phrases[0]["phrases"] == ("yeti", "sb150")
+        assert trend_phrases[0]["score"] == 1000000000.0
+        assert trend_phrases[1]["phrases"] == ("sb150",)
+        assert trend_phrases[1]["score"] == 500000000.0
+        assert trend_phrases[2]["phrases"] == ("enduro", "world", "series")
+        assert trend_phrases[2]["score"] == 84075.0
 
-        # parse file
-        articles = json.loads(article_data)
+    def test_trend_phrases_no_data(
+        self, small_article_data, snapshot_test_time_options
+    ):
+        r = Royston({})
+        r.ingest_all(small_article_data)
+        [trend_phrases, doc_phrases] = r.trend_phrases(
+            snapshot_test_time_options
+        )
+        assert trend_phrases == []
 
-        # articles = json.load('test-articles.json')
-        r.ingest_all(articles)
+    def test_trending_correct_phrases(
+        self, small_article_data, snapshot_test_time_options
+    ):
+        r = Royston(snapshot_test_time_options)
+        r.ingest_all(small_article_data)
         trends = r.trending(snapshot_test_time_options)
 
         assert trends[0]["phrases"] == [("yeti", "sb150")]
@@ -310,16 +224,11 @@ class TestRoyston(unittest.TestCase):
         assert trends[1]["phrases"] == [("enduro", "world", "series")]
         assert trends[1]["score"] == [84075.0]
 
-    def test_trending_no_data(self):
+    def test_trending_no_data(
+        self, small_article_data, snapshot_test_time_options
+    ):
         r = Royston({})
-        with open(
-            os.path.dirname(__file__) + "/test-articles-small.json", "r"
-        ) as article_file:
-            article_data = article_file.read()
-        # parse file
-        articles = json.loads(article_data)
-        # articles = json.load('test-articles.json')
-        r.ingest_all(articles)
+        r.ingest_all(small_article_data)
         trends = r.trending(snapshot_test_time_options)
 
         assert trends == []
