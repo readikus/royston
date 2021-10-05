@@ -87,39 +87,39 @@ class TestRoyston:
             2020, 1, 23, 1, 2, 3, tzinfo=pytz.UTC
         )
 
-    def test_ingest_the_same_doc_twice(self, test_doc):
+    def test_ingest_the_same_doc_twice(self, doc_1):
         r = Royston({"min_trend_freq": 5})
         assert r.docs == {}
-        r.ingest(test_doc)
+        r.ingest(doc_1)
         assert r.docs == {
-            test_doc["id"]: test_doc
+            doc_1["id"]: doc_1
         }  # maybe wrong syntax, as needs to be based on keys??
 
         with pytest.raises(Exception):
-            r.ingest(test_doc)
+            r.ingest(doc_1)
 
-    def test_ingest_all(self, test_doc, test_doc_2):
+    def test_ingest_all(self, doc_1, doc_2):
         # Test ingest_all ingests multiple documents
 
         r = Royston({"min_trend_freq": 5})
         assert r.docs == {}
-        r.ingest_all([test_doc, test_doc_2])
+        r.ingest_all([doc_1, doc_2])
         assert r.docs == {
-            test_doc["id"]: test_doc,
-            test_doc_2["id"]: test_doc_2,
+            doc_1["id"]: doc_1,
+            doc_2["id"]: doc_2,
         }
 
     def test_used_phrases(
         self,
-        test_doc,
-        test_doc_2,
+        doc_1,
+        doc_2,
         used_phrases,
         options,
         past_history_options,
     ):
         # Test used_phrases returns the correct phrases
         r = Royston({"min_trend_freq": 5})
-        r.ingest_all([test_doc, test_doc_2])
+        r.ingest_all([doc_1, doc_2])
         computed_phrases = r.used_phrases(options["start"], options["end"])
         # not perfect just looking at first element, but...
         computed_phrases = sorted(
@@ -141,10 +141,10 @@ class TestRoyston:
             == []
         )
 
-    def test_count(self, test_doc, test_doc_2, options, past_history_options):
+    def test_count(self, doc_1, doc_2, options, past_history_options):
 
         r = Royston({})
-        r.ingest_all([test_doc, test_doc_2])
+        r.ingest_all([doc_1, doc_2])
 
         # count: test the count returns the correct number
         assert r.count(("random",), options) == 2
@@ -154,25 +154,40 @@ class TestRoyston:
         # count: not in date range
         assert r.count(("random"), past_history_options) == 0
 
-    def test_find_docs(self, test_doc, test_doc_2, options):
+    def test_find_docs(self, doc_1, doc_2, options):
 
         r = Royston({})
-        r.ingest_all([test_doc, test_doc_2])
+        r.ingest_all([doc_1, doc_2])
 
         # count: test the count returns the correct number
         assert r.find_docs(("random",), options) == ["123", "456"]
 
+    def test_count_history(self, history_docs):
+
+        r = Royston({})
+        r.ingest_all(history_docs)
+
+        # count: test the count returns the correct number
+        assert r.count_history(("random",)) == 2
+
+    def test_count_trend_period(self, history_docs, doc_1, doc_2):
+
+        r = Royston({})
+        r.ingest_all(history_docs + [doc_1, doc_2])
+
+        assert r.count_trend_period(("random",)) == 2
+
     def test_find_docs_with_subject(
         self,
-        test_doc,
-        test_doc_2,
+        doc_1,
+        doc_2,
         subject_docs,
         options,
         options_with_subject,
     ):
 
         r = Royston({})
-        r.ingest_all([test_doc, test_doc_2] + subject_docs)
+        r.ingest_all([doc_1, doc_2] + subject_docs)
 
         # count: test the count returns the correct number
         all_docs = r.find_docs(("string",), options)

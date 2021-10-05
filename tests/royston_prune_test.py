@@ -5,10 +5,10 @@ from royston.royston import Royston
 
 
 class TestRoystonPrune:
-    def test_prune_low_frequency(self, test_doc, test_doc_2, all_options):
+    def test_prune_low_frequency(self, doc_1, doc_2, all_options):
 
         r = Royston({})
-        r.ingest_all([test_doc, test_doc_2])
+        r.ingest_all([doc_1, doc_2])
 
         assert r.find_docs(("text",), all_options) == ["123"]
         r.prune()

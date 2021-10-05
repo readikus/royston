@@ -9,6 +9,47 @@ from dateutil.relativedelta import relativedelta as delta
 # ensure a consistent relative timestamp
 now = dt.now(pytz.UTC)
 
+history_doc_1 = {
+    "id": "7",
+    "body": "Some random old string",
+    "date": now - delta(months=1),
+}
+history_doc_2 = {
+    "id": "8",
+    "body": "Another really old random string",
+    "date": now - delta(months=2),
+}
+subject_doc_1 = {
+    "id": "1",
+    "body": "Random text string",
+    "date": now,
+    "subject": "wombles",
+}
+subject_doc_2 = {
+    "id": "2",
+    "body": "I tie laces with string",
+    "date": now,
+    "subject": "wombles",
+}
+subject_doc_3 = {
+    "id": "3",
+    "body": "Can you string a sentence together",
+    "date": now,
+    "subject": "wombles",
+}
+subject_doc_4 = {
+    "id": "4",
+    "body": "My fave theory is string theory",
+    "date": now,
+    "subject": "wombles",
+}
+subject_doc_5 = {
+    "id": "5",
+    "body": "I live on a shoe string",
+    "date": now,
+    "subject": "wombles",
+}
+
 
 @pytest.fixture
 def input_value():
@@ -17,43 +58,12 @@ def input_value():
 
 
 @pytest.fixture
-def old_test_doc_1():
-    return {
-        "id": "123",
-        "body": "Random text string",
-        "date": dt(2000, 1, 20, 0, 0, 1, tzinfo=pytz.UTC),
-    }
+def history_docs():
+    return [history_doc_1, history_doc_2]
 
 
 @pytest.fixture
-def old_test_doc_2():
-    return {
-        "id": "456",
-        "body": "Antoher random string",
-        "date": dt(2000, 1, 12, 0, 0, 1, tzinfo=pytz.UTC),
-    }
-
-
-@pytest.fixture
-def history_doc_1(scope="module"):
-    return {
-        "id": "7",
-        "body": "Some random old string",
-        "date": now - delta(months=1),
-    }
-
-
-@pytest.fixture
-def history_doc_2(scope="module"):
-    return {
-        "id": "8",
-        "body": "Another really old random string",
-        "date": now - delta(months=2),
-    }
-
-
-@pytest.fixture
-def test_doc():
+def doc_1():
     return {
         "id": "123",
         "body": "Random text string",
@@ -62,7 +72,7 @@ def test_doc():
 
 
 @pytest.fixture
-def test_doc_2():
+def doc_2():
     return {
         "id": "456",
         "body": "Antoher random string",
@@ -72,7 +82,7 @@ def test_doc_2():
 
 @pytest.fixture
 def no_id_test_doc():
-    return {"body": "Another random string", "date": dt.now(pytz.UTC)}
+    return {"body": "Another random string", "date": now}
 
 
 @pytest.fixture
@@ -96,46 +106,14 @@ def used_phrases():
     ]
 
 
-subject_test_doc_1 = {
-    "id": "1",
-    "body": "Random text string",
-    "date": dt.now(pytz.UTC),
-    "subject": "wombles",
-}
-subject_test_doc_2 = {
-    "id": "2",
-    "body": "I tie laces with string",
-    "date": dt.now(pytz.UTC),
-    "subject": "wombles",
-}
-subject_test_doc_3 = {
-    "id": "3",
-    "body": "Can you string a sentence together",
-    "date": dt.now(pytz.UTC),
-    "subject": "wombles",
-}
-subject_test_doc_4 = {
-    "id": "4",
-    "body": "My fave theory is string theory",
-    "date": dt.now(pytz.UTC),
-    "subject": "wombles",
-}
-subject_test_doc_5 = {
-    "id": "5",
-    "body": "I live on a shoe string",
-    "date": dt.now(pytz.UTC),
-    "subject": "wombles",
-}
-
-
 @pytest.fixture
 def subject_docs():
     return [
-        subject_test_doc_1,
-        subject_test_doc_2,
-        subject_test_doc_3,
-        subject_test_doc_4,
-        subject_test_doc_5,
+        subject_doc_1,
+        subject_doc_2,
+        subject_doc_3,
+        subject_doc_4,
+        subject_doc_5,
     ]
 
 
@@ -160,7 +138,7 @@ def snapshot_options():
 
 default_options = {
     "start": now - delta(day=1),
-    "end": dt.now(pytz.UTC),
+    "end": now,
 }
 default_history_options = {
     **default_options,
