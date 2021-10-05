@@ -8,6 +8,7 @@ from dateutil.relativedelta import relativedelta as delta
 
 # ensure a consistent relative timestamp
 now = dt.now(pytz.UTC)
+recent = now - delta(hours=1)
 
 history_doc_1 = {
     "id": "7",
@@ -22,31 +23,31 @@ history_doc_2 = {
 subject_doc_1 = {
     "id": "1",
     "body": "Random text string",
-    "date": now,
+    "date": recent,
     "subject": "wombles",
 }
 subject_doc_2 = {
     "id": "2",
     "body": "I tie laces with string",
-    "date": now,
+    "date": recent,
     "subject": "wombles",
 }
 subject_doc_3 = {
     "id": "3",
     "body": "Can you string a sentence together",
-    "date": now,
+    "date": recent,
     "subject": "wombles",
 }
 subject_doc_4 = {
     "id": "4",
     "body": "My fave theory is string theory",
-    "date": now,
+    "date": recent,
     "subject": "wombles",
 }
 subject_doc_5 = {
     "id": "5",
     "body": "I live on a shoe string",
-    "date": now,
+    "date": recent,
     "subject": "wombles",
 }
 
@@ -67,7 +68,7 @@ def doc_1():
     return {
         "id": "123",
         "body": "Random text string",
-        "date": now,
+        "date": recent,
     }
 
 
@@ -76,13 +77,13 @@ def doc_2():
     return {
         "id": "456",
         "body": "Antoher random string",
-        "date": now,
+        "date": recent,
     }
 
 
 @pytest.fixture
 def no_id_test_doc():
-    return {"body": "Another random string", "date": now}
+    return {"body": "Another random string", "date": recent}
 
 
 @pytest.fixture
@@ -137,9 +138,11 @@ def snapshot_options():
 
 
 default_options = {
-    "start": now - delta(day=1),
+    "start": now - delta(days=1),
     "end": now,
 }
+
+print("default_options", default_options)
 default_history_options = {
     **default_options,
     "history_end": default_options["start"],
@@ -149,7 +152,10 @@ default_history_options = {
 
 @pytest.fixture
 def options():
-    return default_options
+    return {
+        "start": now - delta(days=1),
+        "end": now,
+    }
 
 
 @pytest.fixture

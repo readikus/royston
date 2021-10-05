@@ -156,6 +156,7 @@ class Royston:
         return [history_start, history_end]
 
     # returns the date range for the trend period
+    # @todo: why is there so much manky code with this?!
     def get_trend_period(self, trend_days=None):
         if trend_days is None:
             trend_days = self.options["trend_days"]
