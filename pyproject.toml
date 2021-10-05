@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "royston"
-version = "0.0.13"
+version = "0.0.14"
 description = "A real time trend detection algorithm"
 authors = ["Ian Read <ianharveyread@gmail.com>"]
 readme = "README.md"

@@ -1,6 +1,8 @@
 import pytest
 import unittest
 
+from royston.royston import Royston
+
 
 class TestRoystonPrune:
     def test_prune_low_frequency(self, doc_1, doc_2, all_options):
