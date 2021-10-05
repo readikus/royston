@@ -14,7 +14,7 @@ def format_d(d):
     s = ""
     for i in range(len(d)):
         for j in range(len(d)):
-            s += d[i][j] + "\t"
+            s += str(d[i][j]) + "\t"
         s += "\r\n"
     return s
 

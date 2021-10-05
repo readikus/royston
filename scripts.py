@@ -12,4 +12,13 @@ def coverage():
     """
     Run coverage report
     """
-    subprocess.call('pytest --cov=royston --cov-report term-missing tests/', shell=True)
+    subprocess.call(
+        "pytest --cov=royston --cov-report term-missing tests/", shell=True
+    )
+
+
+def test_focused():
+    """
+    Run coverage report
+    """
+    subprocess.call("pytest", shell=True)
