@@ -142,7 +142,6 @@ default_options = {
     "end": now,
 }
 
-print("default_options", default_options)
 default_history_options = {
     **default_options,
     "history_end": default_options["start"],

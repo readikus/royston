@@ -68,7 +68,8 @@ class TrendCluster:
         self.options = {**DEFAULT_OPTIONS, **options}
 
         if len(trend_phrases) == 0:
-            # print('No phrases to cluster')
+            self.c = []
+            self.d = []
             return
 
         def map_trend_to_cluster(phrase):
@@ -91,19 +92,17 @@ class TrendCluster:
         self, distance, merge, closet_match, c, d, min_distance
     ):
 
+        if len(c) == 0:
+            return []
+
         # calculate the initial distance matrix
         # this can be a function, surely?
         for i in range(len(c)):
-            # eslint-disable-next-line no-param-reassign
-            # d[i] = d[i] or []#this might not work well
-            for j in range(0, i):  # (let j = 0; j <= i; j++) {
-                # console.log(c[i], c[j], distance(c[i], c[j]))
+            for j in range(0, i):
                 new_distance = (
                     float("inf") if (i == j) else distance(c[i], c[j])
                 )
-                # eslint-disable-next-line no-param-reassign
                 d[i][j] = new_distance
-                # eslint-disable-next-line no-param-reassign
                 d[j][i] = new_distance
 
         # the while condition could die???
@@ -119,21 +118,15 @@ class TrendCluster:
             del d[match["j"]]
 
             # recompute the distance matrix
-            # for (let i = 0; i < d.length; i++) {
             for i in range(len(d)):
                 new_distance = (
                     float("inf")
                     if i == match["i"]
                     else distance(c[match["i"]], c[i])
                 )
-                # eslint-disable-next-line no-param-reassign
-                d[match["i"]][i] = new_distance
-                # eslint-disable-next-line no-param-reassign
-                d[i][match["i"]] = new_distance
-
+                d[match["i"]][i] = d[i][match["i"]] = new_distance
             # compute the next match
             match = closet_match(d, min_distance)
-
         return c
 
     # make work with a proper object...

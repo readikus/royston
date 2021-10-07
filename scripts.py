@@ -5,7 +5,7 @@ def test():
     """
     Run all unittests
     """
-    subprocess.call('pytest', shell=True)
+    subprocess.call('pytest -vv ', shell=True)
 
 
 def coverage():
