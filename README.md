@@ -1,10 +1,10 @@
 # Royston
 
-An open source, real time trend detection framework written in Python. This project uses machine learning to detect trends in text over time.
+Detect trending stories and content in real time. This is an open source Python framework that uses machine learning to detect trends in text over time. Currently, this works just in memory.
 
 Trends are identified by detecting phrases that start occurring much more frequently than those that don't typically occur. Various natural language processing and data science techniques are used to ensure similar words are modelled together (i.e. "cycle", "cycling" and "cyclist" all reduce down to a common word form, such as "cycle").
 
-Documents can be grouped by a subject, so it is possible to detect "localised" trends. Similar phrases tend to relate to a particular trend, so hierachical clustering is used to make sure documents related to the same trend are grouped, rather than creating two "trends" about the same thing. For example, "doping scandal" and "Tour de France" are likely to be about the same thing...allegedly.
+Documents can be grouped by a subject, so it is possible to detect "localised" trends. It is often the case that a trending story has a number of related phrases (for example, "doping scandal" and "Tour de France"), so this is handled using hierachical clustering and doc2vec to handle this.
 
 Based on [`ramekin`](https://github.com/readikus/ramekin), but going to take it further to do real time detection and maintaining models rather than creating them each time.
 
@@ -54,7 +54,6 @@ Currently, the main way of tuning these parameters is controlled by passing the 
 | `history_days` | `int` | 90 | The context of the number of days to consider for the history. This means we look at how often a phrase has occured over this period, and get an idea of typical use. |
 | `trend_days` | `int` | 1 | The period of time in which we want to look for trends. With the default of 1, we are looking at documents from the last day to see if new trends have emerged during that time compared with the typical use period defined by `history_days` |
 | `max_n` | `int` | 6 | The maximum size of the n-gram window (i.e. the window size of each phrase) |
-| `keep_stops` | `Boolean` | `False` | Keep stop words, based on the `nltk` stopword list |
 | `history_frequency_tolerance` | `float` | 1.6 | Factor the history count by this amount to handle words that just didn't get mentioned in the history period. This usefulness of this is in review, and it is likely to be removed in future (or at least set to 1 by default). |
 | `trends_top_n` | `int` | 8 | The maximum number of trends to return |
 
