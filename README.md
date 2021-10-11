@@ -1,6 +1,6 @@
 # Royston
 
-Detect trending stories and content in real time. This is an open source Python framework that uses machine learning to detect trends in text over time. Currently, this works just in memory.
+An end-to-end machine learning library for detect trending stories and content in real time. An open source Python framework that currently works in memory on a single node and can comfortably perform with around 500k-1m articles. Parallelisation is very much on the near term road map (next 6 months).
 
 Trends are identified by detecting phrases that start occurring much more frequently than those that don't typically occur. Various natural language processing and data science techniques are used to ensure similar words are modelled together (i.e. "cycle", "cycling" and "cyclist" all reduce down to a common word form, such as "cycle").
 
@@ -17,11 +17,6 @@ First we will install the package via `pip` by typing the following into the com
 ```
 pip3 install royston
 ```
-Also install a couple of extra dependancies we will need for the example:
-
-```
-pip3 install datetime pytz
-```
 
 The following script creates some simple documents and adds them to a `royston` (also shipped in the `examples` directory):
 
@@ -35,7 +30,8 @@ roy = Royston()
 roy.ingest({ 'id': '123', 'body': 'Random text string', 'date': dt.now() })
 roy.ingest({ 'id': '456', 'body': 'Antoher random string', 'date': dt.now() })
 
-# find the trends - with this example, it won't find anything, as it's only got two stories!
+# find the trends - with this example, it won't find anything, as it's
+# only got two stories!
 trends = roy.trending()
 print(trends)
 ```
