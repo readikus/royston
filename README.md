@@ -92,3 +92,4 @@ Main concerns are:
 
 * 100% test coverage.
 * Retain the document format
+* Code formatted using black/flake8
