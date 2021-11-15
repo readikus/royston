@@ -166,8 +166,6 @@ class TestRoyston:
         r.ingest_all(data_small)
         trends = r.trending(snapshot_options)
 
-        print(trends)
-
         assert trends[0]["phrases"] == [("yeti", "sb150")]
         assert trends[0]["score"] == 1000000000.0
         assert trends[1]["phrases"] == [("enduro", "world", "series")]
