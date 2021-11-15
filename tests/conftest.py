@@ -173,3 +173,59 @@ def past_history_options():
         "start": now - delta(years=2),
         "end": now - delta(years=1),
     }
+
+
+@pytest.fixture
+def raw_trends():
+    return [
+        {
+            "phrases": [("tour", "de", "france")],
+            "score": 2.0,
+            "history_range_count": 5,
+            "trend_range_count": 5,
+            "docs": ["1", "2", "3", "4"],
+        },
+        {
+            "phrases": [("drug", "scandal")],
+            "score": 1.4,
+            "history_range_count": 5,
+            "trend_range_count": 5,
+            "docs": ["2", "3", "4", "5"],
+        },
+        {
+            "phrases": [("chip", "shop", "open")],
+            "score": 1,
+            "history_range_count": 5,
+            "trend_range_count": 5,
+            "docs": ["6", "7", "8"],
+        },
+    ]
+
+
+@pytest.fixture
+def trend_a():
+    return {"phrases": [("a", "b")], "score": 1, "docs": [1, 2, 3]}
+
+
+@pytest.fixture
+def trend_b():
+    return {"phrases": [("c", "d")], "score": 2, "docs": [2, 3, 4]}
+
+
+@pytest.fixture
+def trend_c():
+    return {"phrases": [("e", "f")], "score": 3, "docs": [4, 5, 6]}
+
+
+@pytest.fixture
+def trend_d():
+    return {"phrases": [("g", "h")], "score": 4, "docs": [4, 5]}
+
+
+@pytest.fixture
+def sample_d():
+    return [
+        [0, 0.33333333333333337, 1],
+        [0.33333333333333337, 0, 0.6666666666666667],
+        [1, 0.6666666666666667, 0],
+    ]

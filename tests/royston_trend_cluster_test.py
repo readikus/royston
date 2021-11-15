@@ -13,7 +13,6 @@ class TestTrendCluster:
         r = Royston(snapshot_options)
         r.ingest_all(data_small)
         trends = r.trending(snapshot_options)
-
         clusterer = TrendCluster(trends)
 
         assert (
@@ -50,6 +49,6 @@ class TestTrendCluster:
         c_i_and_j = merge(c_i, c_j)
         assert c_i_and_j == {
             "phrases": [("foo",), ("bar",)],
-            "score": 3,
+            "score": 2,
             "docs": ["1", "2", "3", "4"],
         }

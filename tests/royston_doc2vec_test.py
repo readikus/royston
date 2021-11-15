@@ -14,9 +14,9 @@ class TestRoyston:
         trends = r.trending(snapshot_options)
 
         assert trends[0]["phrases"] == [("yeti", "sb150")]
-        assert trends[0]["score"] == [1000000000.0]
+        assert trends[0]["score"] == 1000000000.0
         assert trends[1]["phrases"] == [("enduro", "world", "series")]
-        assert trends[1]["score"] == [84075.0]
+        assert trends[1]["score"] == 84075.0
 
 
 if __name__ == "__main__":

@@ -33,8 +33,9 @@ def merge(i, j):
     return {
         **i,
         "phrases": i["phrases"] + j["phrases"],
-        # this is nonsense - needs to rescore!
-        "score": i["score"] + j["score"],
+        # pick the highest score - this could be recalculated, but for now,
+        # seems like a logical solution.
+        "score": max(i["score"], j["score"]),
         # merge docs & remove duplicates
         "docs": list(set(i["docs"]) | set(j["docs"])),
     }
@@ -78,7 +79,7 @@ class TrendCluster:
                 if isinstance(phrase["phrases"], list)
                 else [phrase["phrases"]],
                 "docs": phrase["docs"],
-                "score": [phrase["score"]],
+                "score": phrase["score"],
             }
 
         # create initial clusters & populate the distance matrix
