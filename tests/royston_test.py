@@ -3,66 +3,11 @@ import unittest
 import pytest
 import pytz
 
-from royston.royston import Royston, is_sub_phrase, remove_sub_phrases
+from royston.royston import Royston
 from royston.util import normalise
 
 
 class TestRoyston:
-
-    def test_is_sub_phrase(self):
-        assert is_sub_phrase(("a",), ("a", "b")) is True
-        assert is_sub_phrase(("a", "b"), ("a",)) is True
-        assert is_sub_phrase(("c",), ("a", "b")) is False
-        assert is_sub_phrase(("c", "b"), ("a", "b", "c")) is False
-        assert is_sub_phrase(("b", "d"), ("a", "b", "c", "d")) is False
-        assert is_sub_phrase((), ("a", "b")) is False
-        assert is_sub_phrase(None, ("a", "b")) is False
-        assert is_sub_phrase(None, None) is False
-
-    def test_remove_sub_phrases(self):
-        assert remove_sub_phrases(
-            [
-                {
-                    "phrases": ("enduro", "world"),
-                    "score": 562.5,
-                    "history_range_count": 1,
-                    "trend_range_count": 5,
-                    "history_day_average": 0.017777777777777778,
-                    "history_trend_range_ratio": 281.25,
-                    "docs": ["16", "17", "18", "19", "20"],
-                },
-                {
-                    "phrases": ("world",),
-                    "score": 281.25,
-                    "history_range_count": 1,
-                    "trend_range_count": 5,
-                    "history_day_average": 0.017777777777777778,
-                    "history_trend_range_ratio": 281.25,
-                    "docs": ["16", "17", "18", "19", "20"],
-                },
-            ]
-        ) == [
-            {
-                "phrases": ("enduro", "world"),
-                "score": 562.5,
-                "history_range_count": 1,
-                "trend_range_count": 5,
-                "history_day_average": 0.017777777777777778,
-                "history_trend_range_ratio": 281.25,
-                "docs": ["16", "17", "18", "19", "20"],
-            }
-        ]
-
-        assert remove_sub_phrases(
-            [{"phrases": ("a",)}, {"phrases": ("a", "b")}]
-        ) == [{"phrases": ("a", "b")}]
-        assert remove_sub_phrases(
-            [{"phrases": ("a", "b")}, {"phrases": ("a",)}]
-        ) == [{"phrases": ("a", "b")}]
-        assert remove_sub_phrases(
-            [{"phrases": ("c",)}, {"phrases": ("a", "b")}]
-        ) == [{"phrases": ("a", "b")}, {"phrases": ("c",)}]
-
     def test_normalise(self):
         # normalise: normalise a string
         assert normalise("My name is Ian") == ["name", "ian"]
@@ -222,9 +167,9 @@ class TestRoyston:
         trends = r.trending(snapshot_options)
 
         assert trends[0]["phrases"] == [("yeti", "sb150")]
-        assert trends[0]["score"] == [1000000000.0]
+        assert trends[0]["score"] == 1000000000.0
         assert trends[1]["phrases"] == [("enduro", "world", "series")]
-        assert trends[1]["score"] == [84075.0]
+        assert trends[1]["score"] == 84075.0
 
     def test_trending_no_data(self, data_small, snapshot_options):
         r = Royston({})
