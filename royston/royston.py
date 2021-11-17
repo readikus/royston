@@ -59,8 +59,8 @@ class Royston:
         # track the usage of the ngrams
         self.ngram_history = {}
         self.last_ingest_id = None
-        self.doc2vec_docs = []
-        self.doc2vec_tokens = {}
+        # self.doc2vec_docs = []
+        # self.doc2vec_tokens = {}
 
     def clean_date(self, d):
         if isinstance(d, datetime.datetime):
@@ -214,8 +214,8 @@ class Royston:
         # record the id of the last ingest document
         self.last_ingest_id = doc["id"]
 
-        self.ingest_doc2vec(tokens, doc["id"])
-        self.doc2vec_tokens[doc["id"]] = tokens
+        # self.ingest_doc2vec(tokens, doc["id"])
+        # self.doc2vec_tokens[doc["id"]] = tokens
 
     def ingest_all(self, docs):
         """
@@ -225,13 +225,14 @@ class Royston:
         for doc in docs:
             self.ingest(doc)
 
+    """
     # @todo: support subjects
     def ingest_doc2vec(self, tokens, doc_id):
 
-        # For training data, add tags
-        self.doc2vec_docs.append(
-            gensim.models.doc2vec.TaggedDocument(tokens, [doc_id])
-        )
+    # For training data, add tags
+    self.doc2vec_docs.append(
+       gensim.models.doc2vec.TaggedDocument(tokens, [doc_id])
+    )
 
     def train_doc2vec(self):
         epochs_count = len(self.doc2vec_docs)
@@ -244,6 +245,7 @@ class Royston:
             total_examples=self.doc2vec_model.corpus_count,
             epochs=epochs_count,
         )
+    """
 
     def used_phrases(self, start, end):
         """
@@ -506,6 +508,7 @@ class Royston:
         if trend_phrases is None or len(trend_phrases) == 0:
             return []
 
+        """
         self.train_doc2vec()
 
         # add in the tokens
@@ -521,7 +524,7 @@ class Royston:
                     )
                     distances.append(sim)
             return 1 - (sum(distances) / len(distances))
-
+        """
         # end of trending:search
 
         # start of trending:cluster
