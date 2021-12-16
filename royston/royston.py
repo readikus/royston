@@ -5,7 +5,6 @@ import dateparser
 import pytz
 from datetime import datetime as dt
 import dateutil.relativedelta
-import gensim
 
 from royston.tc_overlap_strategy import OverlapStrategy
 from royston.util import normalise
@@ -104,8 +103,8 @@ class Royston:
 
     def set_periods(self, history_days=None, trend_days=None):
         [start, end] = self.get_trend_period(trend_days)
+        # this seems wrong!
         [history_start, history_end] = self.get_history_period(trend_days)
-
         self.options = {
             **self.options,
             "start": self.clean_date(start),
