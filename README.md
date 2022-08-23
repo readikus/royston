@@ -86,7 +86,7 @@ poetry build && poetry publish
 
 ## Contribute?
 
-This is still in the early stages of being ported over from JavaScript, and any help would be appreciated. The issues contain a lot of features that are needed. Please get in touch via [LinkedIn](https://www.linkedin.com/in/ianreadnorwich/) and I can talk you thought anything.
+This is still in the early stages of being ported over from JavaScript, and any help would be appreciated. The issues contain a lot of features that are needed. Please get in touch via [LinkedIn](https://www.linkedin.com/in/readikus/) and I can talk you thought anything.
 
 Main concerns are:
 
